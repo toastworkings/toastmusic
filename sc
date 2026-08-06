@@ -1,3 +1,0 @@
-<a href="https://soundcloud.com/toast_03" target="_blank" rel="noopener noreferrer">
-  <img src="soundcloudicon.png" alt="SoundCloud">
-</a>
