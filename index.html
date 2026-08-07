@@ -3,13 +3,15 @@
     background-color: #000000;
     margin: 0;
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
     height: 100vh;
+    font-family: 'Poppins', sans-serif;
   }
 
   #soundcloud-link img {
-    width: 100px; /* adjust to whatever size you want */
+    width: 100px; 
     transition: transform 0.1s ease-out;
   }
 
@@ -22,11 +24,28 @@
     transform: scale(1);
     transition: transform 0.4s ease-out;
   }
+
+  #who-is-toast {
+    color: #ffffff;
+    margin-top: 16px;
+    font-size: 18px;
+    font-weight: 400;
+    cursor: pointer;
+    transition: font-weight 0.15s ease-out;
+  }
+
+  #who-is-toast:hover {
+    font-weight: 700;
+  }
 </style>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
 
 <a href="https://soundcloud.com/toast_03" target="_blank" rel="noopener noreferrer" id="soundcloud-link">
   <img src="soundcloudicon.png" alt="SoundCloud" id="soundcloud-img">
 </a>
+
+<p id="who-is-toast">who is toast</p>
 
 <script>
   const link = document.getElementById('soundcloud-link');
@@ -45,6 +64,11 @@
 
     setTimeout(() => {
       window.open(link.href, '_blank', 'noopener,noreferrer');
-    }, 1000); // still navigates after 1s — change this too if you want it snappier
+    }, 1000);
+  });
+
+  const toastText = document.getElementById('who-is-toast');
+  toastText.addEventListener('click', function () {
+    window.open('https://linktr.ee/toastW', '_blank', 'noopener,noreferrer');
   });
 </script>
