@@ -11,7 +11,7 @@
   }
 
   #soundcloud-link img {
-    width: 100px; /* adjust to whatever size you want */
+    width: 100px;
     transition: transform 0.1s ease-out;
   }
 
@@ -37,6 +37,52 @@
   #who-is-toast:hover {
     font-weight: 700;
   }
+
+  /* --- Newest Release section --- */
+  #newest-release {
+    margin-top: 40px;
+    text-align: center;
+    color: #ffffff;
+  }
+
+  #newest-release-label {
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #b3b3b3;
+    margin-bottom: 10px;
+  }
+
+  #newest-release a {
+    text-decoration: none;
+    color: #ffffff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  #newest-release img {
+    width: 140px;
+    height: 140px;
+    object-fit: cover;
+    border-radius: 8px;
+    transition: transform 0.2s ease-out;
+  }
+
+  #newest-release a:hover img {
+    transform: scale(1.05);
+  }
+
+  #newest-release-title {
+    margin-top: 10px;
+    font-size: 15px;
+    font-weight: 400;
+    transition: font-weight 0.15s ease-out;
+  }
+
+  #newest-release a:hover #newest-release-title {
+    font-weight: 700;
+  }
 </style>
 
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
@@ -46,6 +92,16 @@
 </a>
 
 <p id="who-is-toast">who is toast</p>
+
+<!-- ====== EDIT THIS BLOCK EACH TIME YOU DROP A NEW SONG ====== -->
+<div id="newest-release">
+  <div id="newest-release-label">Newest Release</div>
+  <a href="https://open.spotify.com/track/55FWo4jTLcQkAeJYH5xiMH" target="_blank" rel="noopener noreferrer">
+    <img src="cover-art.png" alt="junior high 1.png">
+    <div id="newest-release-title">JUNIOR HIGH</div>
+  </a>
+</div>
+<!-- ============================================================ -->
 
 <script>
   const link = document.getElementById('soundcloud-link');
@@ -64,7 +120,7 @@
 
     setTimeout(() => {
       window.open(link.href, '_blank', 'noopener,noreferrer');
-    }, 500); // matches 0.1s scale-up + 0.4s scale-down
+    }, 500);
   });
 
   const toastText = document.getElementById('who-is-toast');
