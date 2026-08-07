@@ -14,38 +14,10 @@
     align-items: center;
     min-height: 100vh;
     font-family: 'Poppins', sans-serif;
-    overflow: hidden;
     position: relative;
   }
 
-  #gradient-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 0;
-    pointer-events: none;
-    opacity: 0;
-    transform: translateY(-100%);
-    background-color: #000000;
-    background-image:
-      radial-gradient(circle, rgba(0,0,0,0.4) 1.5px, transparent 1.5px),
-      linear-gradient(to bottom, #b84dd6, #000000);
-    background-size: 10px 10px, 100% 100%;
-  }
-
-  #gradient-overlay.reveal {
-    animation: gradientReveal 0.35s ease;
-  }
-
-  @keyframes gradientReveal {
-    0% { opacity: 0; transform: translateY(-100%); }
-    50% { opacity: 1; transform: translateY(-25%); }
-    100% { opacity: 0; transform: translateY(0); }
-  }
-
-  body > *:not(#gradient-overlay) {
+  body > *:not(.click-ripple):not(.click-dot) {
     position: relative;
     z-index: 1;
   }
@@ -140,11 +112,20 @@
     0% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
     100% { transform: translate(-50%, -50%) scale(12); opacity: 0; }
   }
+
+  .click-dot {
+    position: fixed;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #b84dd6;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 0;
+  }
 </style>
 </head>
 <body>
-
-<div id="gradient-overlay"></div>
 
 <a href="https://soundcloud.com/toast_03" target="_blank" rel="noopener noreferrer" id="soundcloud-link">
   <img src="soundcloudicon.png" alt="SoundCloud" id="soundcloud-img">
@@ -187,12 +168,7 @@
     window.open('https://linktr.ee/toastW', '_blank', 'noopener,noreferrer');
   });
 
-  const gradientOverlay = document.getElementById('gradient-overlay');
   document.addEventListener('click', function (e) {
-    gradientOverlay.classList.remove('reveal');
-    void gradientOverlay.offsetWidth;
-    gradientOverlay.classList.add('reveal');
-
     const ripple = document.createElement('div');
     ripple.className = 'click-ripple';
     ripple.style.left = e.clientX + 'px';
@@ -203,8 +179,39 @@
     });
   });
 
-  gradientOverlay.addEventListener('animationend', function () {
-    gradientOverlay.classList.remove('reveal');
+  function placeDot(x, y) {
+    const dot = document.createElement('div');
+    dot.className = 'click-dot';
+    dot.style.left = x + 'px';
+    dot.style.top = y + 'px';
+    document.body.appendChild(dot);
+  }
+
+  let isDragging = false;
+  let lastX = 0;
+  let lastY = 0;
+  const dotSpacing = 14;
+
+  document.addEventListener('mousedown', function (e) {
+    isDragging = true;
+    lastX = e.clientX;
+    lastY = e.clientY;
+    placeDot(e.clientX, e.clientY);
+  });
+
+  document.addEventListener('mousemove', function (e) {
+    if (!isDragging) return;
+    const dx = e.clientX - lastX;
+    const dy = e.clientY - lastY;
+    if (Math.sqrt(dx * dx + dy * dy) >= dotSpacing) {
+      placeDot(e.clientX, e.clientY);
+      lastX = e.clientX;
+      lastY = e.clientY;
+    }
+  });
+
+  document.addEventListener('mouseup', function () {
+    isDragging = false;
   });
 </script>
 
