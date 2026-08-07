@@ -11,7 +11,7 @@
   }
 
   #soundcloud-link img {
-    width: 100px; 
+    width: 100px; /* adjust to whatever size you want */
     transition: transform 0.1s ease-out;
   }
 
@@ -64,7 +64,7 @@
 
     setTimeout(() => {
       window.open(link.href, '_blank', 'noopener,noreferrer');
-    }, 1000);
+    }, 500); // matches 0.1s scale-up + 0.4s scale-down
   });
 
   const toastText = document.getElementById('who-is-toast');
