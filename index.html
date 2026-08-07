@@ -7,10 +7,6 @@
 <style>
   body {
     background-color: #000000;
-    background-image:
-      radial-gradient(circle, rgba(0,0,0,0.4) 1.5px, transparent 1.5px),
-      linear-gradient(to bottom, #b84dd6, #000000);
-    background-size: 10px 10px, 100% 100%;
     margin: 0;
     display: flex;
     flex-direction: column;
@@ -18,6 +14,40 @@
     align-items: center;
     min-height: 100vh;
     font-family: 'Poppins', sans-serif;
+    overflow: hidden;
+    position: relative;
+  }
+
+  #gradient-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(-100%);
+    background-color: #000000;
+    background-image:
+      radial-gradient(circle, rgba(0,0,0,0.4) 1.5px, transparent 1.5px),
+      linear-gradient(to bottom, #b84dd6, #000000);
+    background-size: 10px 10px, 100% 100%;
+  }
+
+  #gradient-overlay.reveal {
+    animation: gradientReveal 0.35s ease;
+  }
+
+  @keyframes gradientReveal {
+    0% { opacity: 0; transform: translateY(-100%); }
+    50% { opacity: 1; transform: translateY(-25%); }
+    100% { opacity: 0; transform: translateY(0); }
+  }
+
+  body > *:not(#gradient-overlay) {
+    position: relative;
+    z-index: 1;
   }
 
   #soundcloud-link img {
@@ -96,6 +126,8 @@
 </head>
 <body>
 
+<div id="gradient-overlay"></div>
+
 <a href="https://soundcloud.com/toast_03" target="_blank" rel="noopener noreferrer" id="soundcloud-link">
   <img src="soundcloudicon.png" alt="SoundCloud" id="soundcloud-img">
 </a>
@@ -135,6 +167,17 @@
   const toastText = document.getElementById('who-is-toast');
   toastText.addEventListener('click', function () {
     window.open('https://linktr.ee/toastW', '_blank', 'noopener,noreferrer');
+  });
+
+  const gradientOverlay = document.getElementById('gradient-overlay');
+  document.addEventListener('click', function () {
+    gradientOverlay.classList.remove('reveal');
+    void gradientOverlay.offsetWidth;
+    gradientOverlay.classList.add('reveal');
+  });
+
+  gradientOverlay.addEventListener('animationend', function () {
+    gradientOverlay.classList.remove('reveal');
   });
 </script>
 
