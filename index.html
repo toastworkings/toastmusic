@@ -1,19 +1,53 @@
 <style>
   body {
-    background-color: black;
+    background-color: #000000;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
   }
 
-  .soundcloud-link img {
-    width: 50px; /* adjust to your icon's size */
-    transition: transform 0.2s ease-in;
+  #soundcloud-link img {
+    width: 100px; /* adjust to whatever size you want */
+    transition: transform 0.2s ease-out;
   }
 
-  .soundcloud-link:hover img {
+  #soundcloud-link img.clicked {
     transform: scale(1.1);
-    transition: transform 0.2s ease-in, transform 0.8s ease-out 0.2s;
+    transition: transform 0.2s ease-out;
+  }
+
+  #soundcloud-link img.reset {
+    transform: scale(1);
+    transition: transform 0.8s ease-out;
   }
 </style>
 
-<a href="https://soundcloud.com/toast_03" target="_blank" rel="noopener noreferrer" class="soundcloud-link">
-  <img src="soundcloudicon.png" alt="SoundCloud">
+<a href="https://soundcloud.com/toast_03" target="_blank" rel="noopener noreferrer" id="soundcloud-link">
+  <img src="soundcloudicon.png" alt="SoundCloud" id="soundcloud-img">
 </a>
+
+<script>
+  const link = document.getElementById('soundcloud-link');
+  const img = document.getElementById('soundcloud-img');
+
+  link.addEventListener('click', function (e) {
+    e.preventDefault(); // stop immediate navigation
+
+    // scale up
+    img.classList.remove('reset');
+    img.classList.add('clicked');
+
+    // after 0.2s, scale back down over 0.8s
+    setTimeout(() => {
+      img.classList.remove('clicked');
+      img.classList.add('reset');
+    }, 200);
+
+    // navigate after 1 second total
+    setTimeout(() => {
+      window.open(link.href, '_blank', 'noopener,noreferrer');
+    }, 1000);
+  });
+</script>
