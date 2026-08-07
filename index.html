@@ -122,6 +122,24 @@
   #newest-release a:hover #newest-release-title {
     font-weight: 700;
   }
+
+  .click-ripple {
+    position: fixed;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #b84dd6;
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.8;
+    pointer-events: none;
+    z-index: 2;
+    animation: rippleExpand 0.6s ease-out forwards;
+  }
+
+  @keyframes rippleExpand {
+    0% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+    100% { transform: translate(-50%, -50%) scale(12); opacity: 0; }
+  }
 </style>
 </head>
 <body>
@@ -170,10 +188,19 @@
   });
 
   const gradientOverlay = document.getElementById('gradient-overlay');
-  document.addEventListener('click', function () {
+  document.addEventListener('click', function (e) {
     gradientOverlay.classList.remove('reveal');
     void gradientOverlay.offsetWidth;
     gradientOverlay.classList.add('reveal');
+
+    const ripple = document.createElement('div');
+    ripple.className = 'click-ripple';
+    ripple.style.left = e.clientX + 'px';
+    ripple.style.top = e.clientY + 'px';
+    document.body.appendChild(ripple);
+    ripple.addEventListener('animationend', function () {
+      ripple.remove();
+    });
   });
 
   gradientOverlay.addEventListener('animationend', function () {
