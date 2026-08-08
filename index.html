@@ -17,7 +17,7 @@
     position: relative;
   }
 
-  body > *:not(.click-ripple):not(.click-dot):not(.click-splash) {
+  body > *:not(.click-ripple):not(.click-splash) {
     position: relative;
     z-index: 1;
   }
@@ -95,31 +95,31 @@
     font-weight: 700;
   }
 
-  .click-dot {
+  .click-ripple {
     position: fixed;
-    width: 14px;
-    height: 14px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
     background: #b84dd6;
-    transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.8;
     pointer-events: none;
-    z-index: 0;
+    z-index: 2;
+    animation: rippleExpand 0.6s ease-out forwards;
+  }
+
+  @keyframes rippleExpand {
+    0% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+    100% { transform: translate(-50%, -50%) scale(12); opacity: 0; }
   }
 
   .click-splash {
     position: fixed;
     width: 28px;
     height: 28px;
-    transform: translate(-50%, -50%) scale(1);
-    opacity: 0.9;
+    transform: translate(-50%, -50%);
     pointer-events: none;
-    z-index: 2;
-    animation: splashExpand 0.6s ease-out forwards;
-  }
-
-  @keyframes splashExpand {
-    0% { transform: translate(-50%, -50%) scale(1); opacity: 0.9; }
-    100% { transform: translate(-50%, -50%) scale(4); opacity: 0; }
+    z-index: 0;
   }
 </style>
 </head>
@@ -166,14 +166,6 @@
     window.open('https://linktr.ee/toastW', '_blank', 'noopener,noreferrer');
   });
 
-  function placeDot(x, y) {
-    const dot = document.createElement('div');
-    dot.className = 'click-dot';
-    dot.style.left = x + 'px';
-    dot.style.top = y + 'px';
-    document.body.appendChild(dot);
-  }
-
   function placeSplash(x, y) {
     const splash = document.createElement('img');
     splash.src = 'splash.png';
@@ -181,8 +173,16 @@
     splash.style.left = x + 'px';
     splash.style.top = y + 'px';
     document.body.appendChild(splash);
-    splash.addEventListener('animationend', function () {
-      splash.remove();
+  }
+
+  function spawnRipple(x, y) {
+    const ripple = document.createElement('div');
+    ripple.className = 'click-ripple';
+    ripple.style.left = x + 'px';
+    ripple.style.top = y + 'px';
+    document.body.appendChild(ripple);
+    ripple.addEventListener('animationend', function () {
+      ripple.remove();
     });
   }
 
@@ -205,7 +205,7 @@
     const dy = e.clientY - lastY;
     if (Math.sqrt(dx * dx + dy * dy) >= dotSpacing) {
       hasMoved = true;
-      placeDot(e.clientX, e.clientY);
+      placeSplash(e.clientX, e.clientY);
       lastX = e.clientX;
       lastY = e.clientY;
     }
@@ -213,6 +213,7 @@
 
   document.addEventListener('mouseup', function (e) {
     if (isDragging && !hasMoved) {
+      spawnRipple(e.clientX, e.clientY);
       placeSplash(e.clientX, e.clientY);
     }
     isDragging = false;
