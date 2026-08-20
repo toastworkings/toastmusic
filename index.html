@@ -115,8 +115,6 @@
 
   .click-splash {
     position: fixed;
-    width: 130px;
-    height: 130px;
     transform: translate(-50%, -50%);
     pointer-events: none;
     z-index: 0;
@@ -170,6 +168,9 @@
     const splash = document.createElement('img');
     splash.src = 'Splash.png';
     splash.className = 'click-splash';
+    const size = Math.floor(Math.random() * (300 - 48 + 1)) + 48;
+    splash.style.width = size + 'px';
+    splash.style.height = size + 'px';
     splash.style.left = x + 'px';
     splash.style.top = y + 'px';
     document.body.appendChild(splash);
