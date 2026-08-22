@@ -104,15 +104,18 @@
 
   .click-splash {
     position: fixed;
+    width: 130px;
+    height: 130px;
     transform: translate(-50%, -50%) scale(0) rotate(var(--splash-rotation, 0deg));
     pointer-events: none;
     z-index: 0;
+    will-change: transform, opacity;
     animation: splashGrow 0.3s ease-out forwards;
   }
 
   @keyframes splashGrow {
     0% { transform: translate(-50%, -50%) scale(0) rotate(var(--splash-rotation, 0deg)); }
-    100% { transform: translate(-50%, -50%) scale(1) rotate(var(--splash-rotation, 0deg)); }
+    100% { transform: translate(-50%, -50%) scale(var(--splash-scale, 1)) rotate(var(--splash-rotation, 0deg)); }
   }
 
   #too-many-splashes {
@@ -181,6 +184,10 @@
   });
 
   const splashImages = ['splash1.png', 'splash2.png', 'splash3.png', 'splash4.png', 'splash5.png', 'splash6.png'];
+  splashImages.forEach(function (src) {
+    const preload = new Image();
+    preload.src = src;
+  });
 
   let splashCount = 0;
   let limitReached = false;
@@ -191,9 +198,10 @@
     const splash = document.createElement('img');
     splash.src = splashImages[Math.floor(Math.random() * splashImages.length)];
     splash.className = 'click-splash';
+    splash.decoding = 'async';
+    splash.loading = 'eager';
     const size = Math.floor(Math.random() * (300 - 48 + 1)) + 48;
-    splash.style.width = size + 'px';
-    splash.style.height = size + 'px';
+    splash.style.setProperty('--splash-scale', (size / 130).toFixed(3));
     splash.style.left = x + 'px';
     splash.style.top = y + 'px';
     if (Math.random() < 0.5) {
@@ -203,7 +211,7 @@
     document.body.appendChild(splash);
 
     splashCount++;
-    if (splashCount >= 200) {
+    if (splashCount >= 300) {
       limitReached = true;
       document.body.style.backgroundColor = '#b84ed6';
       document.getElementById('too-many-splashes').classList.add('visible');
