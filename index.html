@@ -119,15 +119,15 @@
 
   .click-splash {
     position: fixed;
-    transform: translate(-50%, -50%) scale(0);
+    transform: translate(-50%, -50%) scale(0) rotate(var(--splash-rotation, 0deg));
     pointer-events: none;
     z-index: 0;
     animation: splashGrow 0.3s ease-out forwards;
   }
 
   @keyframes splashGrow {
-    0% { transform: translate(-50%, -50%) scale(0); }
-    100% { transform: translate(-50%, -50%) scale(1); }
+    0% { transform: translate(-50%, -50%) scale(0) rotate(var(--splash-rotation, 0deg)); }
+    100% { transform: translate(-50%, -50%) scale(1) rotate(var(--splash-rotation, 0deg)); }
   }
 </style>
 </head>
@@ -174,15 +174,21 @@
     window.open('https://linktr.ee/toastW', '_blank', 'noopener,noreferrer');
   });
 
+  const splashImages = ['splash1.png', 'splash2.png', 'splash3.png', 'splash4.png', 'splash5.png', 'splash6.png'];
+
   function placeSplash(x, y) {
     const splash = document.createElement('img');
-    splash.src = 'Splash.png';
+    splash.src = splashImages[Math.floor(Math.random() * splashImages.length)];
     splash.className = 'click-splash';
     const size = Math.floor(Math.random() * (300 - 48 + 1)) + 48;
     splash.style.width = size + 'px';
     splash.style.height = size + 'px';
     splash.style.left = x + 'px';
     splash.style.top = y + 'px';
+    if (Math.random() < 0.5) {
+      const rotation = Math.floor(Math.random() * 361);
+      splash.style.setProperty('--splash-rotation', rotation + 'deg');
+    }
     document.body.appendChild(splash);
   }
 
