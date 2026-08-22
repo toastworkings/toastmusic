@@ -17,6 +17,7 @@
     position: relative;
     user-select: none;
     -webkit-user-select: none;
+    transition: background-color 1s ease;
   }
 
   body > *:not(.click-ripple):not(.click-splash) {
@@ -174,7 +175,14 @@
       splash.style.setProperty('--splash-rotation', rotation + 'deg');
     }
     document.body.appendChild(splash);
+
+    splashCount++;
+    if (splashCount === 200) {
+      document.body.style.backgroundColor = '#b84ed6';
+    }
   }
+
+  let splashCount = 0;
 
   let isDragging = false;
   let hasMoved = false;
