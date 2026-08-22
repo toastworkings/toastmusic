@@ -117,9 +117,9 @@
 
   #too-many-splashes {
     position: fixed;
-    top: 50%;
+    top: 40px;
     left: 50%;
-    transform: translate(-50%, -50%);
+    transform: translateX(-50%);
     color: #ffffff;
     font-size: 28px;
     font-weight: 700;
@@ -127,7 +127,7 @@
     opacity: 0;
     pointer-events: none;
     z-index: 3;
-    transition: opacity 2s ease;
+    transition: opacity 4s ease;
   }
 
   #too-many-splashes.visible {
@@ -207,9 +207,11 @@
       limitReached = true;
       document.body.style.backgroundColor = '#b84ed6';
       document.getElementById('too-many-splashes').classList.add('visible');
-      document.querySelectorAll('.click-splash').forEach(function (el) {
-        el.remove();
-      });
+      setTimeout(function () {
+        document.querySelectorAll('.click-splash').forEach(function (el) {
+          el.remove();
+        });
+      }, 2000);
     }
   }
 
