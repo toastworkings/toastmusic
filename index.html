@@ -119,9 +119,15 @@
 
   .click-splash {
     position: fixed;
-    transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%) scale(0);
     pointer-events: none;
     z-index: 0;
+    animation: splashGrow 0.3s ease-out forwards;
+  }
+
+  @keyframes splashGrow {
+    0% { transform: translate(-50%, -50%) scale(0); }
+    100% { transform: translate(-50%, -50%) scale(1); }
   }
 </style>
 </head>
