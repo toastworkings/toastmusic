@@ -17,7 +17,7 @@
     position: relative;
     user-select: none;
     -webkit-user-select: none;
-    transition: background-color 1s ease;
+    transition: background-color 2s ease;
   }
 
   body > *:not(.click-ripple):not(.click-splash) {
@@ -114,6 +114,25 @@
     0% { transform: translate(-50%, -50%) scale(0) rotate(var(--splash-rotation, 0deg)); }
     100% { transform: translate(-50%, -50%) scale(1) rotate(var(--splash-rotation, 0deg)); }
   }
+
+  #too-many-splashes {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #ffffff;
+    font-size: 28px;
+    font-weight: 700;
+    text-align: center;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 3;
+    transition: opacity 2s ease;
+  }
+
+  #too-many-splashes.visible {
+    opacity: 1;
+  }
 </style>
 </head>
 <body>
@@ -133,6 +152,8 @@
   </a>
 </div>
 <!-- ============================================================ -->
+
+<p id="too-many-splashes">too many splashes bub &gt;:c</p>
 
 <script>
   const link = document.getElementById('soundcloud-link');
@@ -161,7 +182,12 @@
 
   const splashImages = ['splash1.png', 'splash2.png', 'splash3.png', 'splash4.png', 'splash5.png', 'splash6.png'];
 
+  let splashCount = 0;
+  let limitReached = false;
+
   function placeSplash(x, y) {
+    if (limitReached) return;
+
     const splash = document.createElement('img');
     splash.src = splashImages[Math.floor(Math.random() * splashImages.length)];
     splash.className = 'click-splash';
@@ -177,12 +203,15 @@
     document.body.appendChild(splash);
 
     splashCount++;
-    if (splashCount === 200) {
+    if (splashCount >= 200) {
+      limitReached = true;
       document.body.style.backgroundColor = '#b84ed6';
+      document.getElementById('too-many-splashes').classList.add('visible');
+      document.querySelectorAll('.click-splash').forEach(function (el) {
+        el.remove();
+      });
     }
   }
-
-  let splashCount = 0;
 
   let isDragging = false;
   let hasMoved = false;
