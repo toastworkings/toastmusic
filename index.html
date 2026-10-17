@@ -112,6 +112,13 @@
     text-align: center;
   }
 
+  #blocked-msg {
+    min-height: 18px;
+    margin-bottom: 6px;
+    font-size: 13px;
+    color: #ff6b6b;
+  }
+
   #submit-label {
     font-size: 12px;
     letter-spacing: 2px;
@@ -361,6 +368,7 @@
   <p id="who-is-toast">who is toast</p>
 
   <div id="submit-box">
+    <div id="blocked-msg"></div>
     <div id="submit-label">2K FOLLOWERS SUBMISSIONS</div>
     <textarea id="submit-text" maxlength="280" placeholder="type anything..."></textarea>
     <div id="submit-row">
@@ -446,18 +454,53 @@
     try { return JSON.parse(localStorage.getItem(key)) || fallback; } catch (e) { return fallback; }
   }
 
+  function isBlocked(t) {
+    return t.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '').indexOf('skibidi') !== -1;
+  }
+
+  function normalizeText(t) {
+    const cleaned = t.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+    return cleaned || t.toLowerCase().replace(/\s+/g, ' ').trim();
+  }
+
+  function hashText(str) {
+    let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+    for (let i = 0; i < str.length; i++) {
+      const ch = str.charCodeAt(i);
+      h1 = Math.imul(h1 ^ ch, 2654435761);
+      h2 = Math.imul(h2 ^ ch, 1597334677);
+    }
+    h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+    h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+    return 'd' + (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
+  }
+
   async function saveSubmission(text) {
+    const norm = normalizeText(text);
     const entry = { text: text, time: Date.now() };
     if (DB_URL) {
-      const res = await fetch(dbBase + '/submissions.json', {
-        method: 'POST',
+      const check = await fetch(dbBase + '/submissions.json');
+      if (check.ok) {
+        const data = await check.json();
+        const exists = data && Object.keys(data).some(function (k) {
+          return data[k] && typeof data[k].text === 'string' && normalizeText(data[k].text) === norm;
+        });
+        if (exists) throw new Error('duplicate');
+      }
+      // The key is a hash of the text, so the database itself refuses a second copy.
+      const res = await fetch(dbBase + '/submissions/' + hashText(norm) + '.json', {
+        method: 'PUT',
         body: JSON.stringify(entry)
       });
+      if (res.status === 401 || res.status === 403) throw new Error('duplicate');
       if (!res.ok) throw new Error('Save failed');
       return;
     }
-    entry.id = 'local' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     const list = readLocal(LOCAL_KEY, []);
+    if (list.some(function (s) { return s && typeof s.text === 'string' && normalizeText(s.text) === norm; })) {
+      throw new Error('duplicate');
+    }
+    entry.id = 'local' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     list.push(entry);
     try { localStorage.setItem(LOCAL_KEY, JSON.stringify(list)); } catch (e) { throw new Error('Save failed'); }
   }
@@ -482,8 +525,16 @@
       });
       votes = readLocal(LOCAL_VOTES_KEY, {});
     }
+    const seen = {};
     return subs
-      .filter(function (s) { return s && typeof s.text === 'string'; })
+      .filter(function (s) { return s && typeof s.text === 'string' && !isBlocked(s.text); })
+      .sort(function (x, y) { return (x.time || 0) - (y.time || 0); })
+      .filter(function (s) {
+        const n = normalizeText(s.text);
+        if (seen[n]) return false;
+        seen[n] = true;
+        return true;
+      })
       .map(function (s) {
         const v = votes[s.id] || {};
         let score = 0;
@@ -520,15 +571,22 @@
   const statusEl = document.getElementById('submit-status');
   const charCount = document.getElementById('char-count');
   let lastSubmit = 0;
+  const blockedMsg = document.getElementById('blocked-msg');
 
   textarea.addEventListener('input', function () {
     charCount.textContent = textarea.value.length + ' / ' + MAX_LENGTH;
+    blockedMsg.textContent = '';
   });
 
   submitBtn.addEventListener('click', async function () {
     const text = textarea.value.trim();
     if (!text) {
       statusEl.textContent = 'write something first!';
+      return;
+    }
+    if (isBlocked(text)) {
+      blockedMsg.textContent = 'fuck you sincerely';
+      statusEl.textContent = '';
       return;
     }
     const wait = COOLDOWN_MS - (Date.now() - lastSubmit);
@@ -546,7 +604,9 @@
       charCount.textContent = '0 / ' + MAX_LENGTH;
       statusEl.textContent = 'sent!';
     } catch (e) {
-      statusEl.textContent = 'something went wrong, try again';
+      statusEl.textContent = e.message === 'duplicate'
+        ? 'someone already submitted that!'
+        : 'something went wrong, try again';
     }
     submitBtn.disabled = false;
   });
