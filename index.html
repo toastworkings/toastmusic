@@ -594,7 +594,7 @@
 
   /* ---------- Blocked-word filter ---------- */
   // STEMS are blocked even inside longer words (fucking, bullshit, ...).
-  const BAD_STEMS = ('fuck shit bitch whore slut faggot nigger nigga niggah niggaz pussy dildo jizz ' +
+  const BAD_STEMS = (shit bitch whore slut faggot nigger nigga niggah niggaz pussy dildo jizz ' +
     'cocksuck cumshot blowjob handjob dickhead dumbass asshole arsehole asshat asswipe assclown ' +
     'jackass douchebag bastard scheiss kurw pierdol spierdal wypierdal jebac jebany jebal jebie ' +
     'jebn skurwy chuj pizd blyat blyad').split(' ');
@@ -603,7 +603,7 @@
   // "cocktail", "Dickens" or "assassin" are NOT caught. Add or remove words here.
   const BAD_WORDS = new Set(('ass asses arse arses fatass smartass bollocks bollock bugger buggered ' +
     'butthole buttholes boner cock cocks cunt cunts cunty crap craps crappy crapper damn damned ' +
-    'dammit damnit goddamn goddamned goddammit goddamnit hell hells dick dicks douche douches ' +
+    'dammit damnit goddamn goddamned goddammit goddamnit hells dick dicks douche douches ' +
     'fag fags fagot fagots dyke dykes lesbo lesbos tranny trannies shemale shemales retard retards ' +
     'retarded tard tards spastic spaz spazz mong mongoloid spic spick spics chink chinks gook gooks ' +
     'kike kikes wetback wetbacks beaner beaners coon coons darkie darky paki pakis raghead ragheads ' +
