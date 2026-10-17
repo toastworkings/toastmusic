@@ -2,21 +2,29 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>toast</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
 <style>
   body {
     background-color: #000000;
     margin: 0;
+    font-family: 'Poppins', sans-serif;
+    position: relative;
+    user-select: none;
+    -webkit-user-select: none;
+    color: #ffffff;
+  }
+
+  [hidden] { display: none !important; }
+
+  /* ---------- MAIN VIEW ---------- */
+  #main-view {
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    font-family: 'Poppins', sans-serif;
-    position: relative;
-    user-select: none;
-    -webkit-user-select: none;
   }
 
   #soundcloud-link img {
@@ -95,17 +103,237 @@
   #newest-release a:hover #newest-release-title {
     font-weight: 700;
   }
+
+  /* ---------- SUBMIT BOX ---------- */
+  #submit-box {
+    margin-top: 40px;
+    width: 300px;
+    max-width: 85vw;
+    text-align: center;
+  }
+
+  #submit-label {
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #b3b3b3;
+    margin-bottom: 10px;
+  }
+
+  #submit-text {
+    box-sizing: border-box;
+    width: 100%;
+    height: 80px;
+    resize: none;
+    background: #111111;
+    color: #ffffff;
+    border: 1px solid #333333;
+    border-radius: 8px;
+    padding: 10px;
+    font-family: 'Poppins', sans-serif;
+    font-size: 14px;
+    outline: none;
+    user-select: text;
+    -webkit-user-select: text;
+    transition: border-color 0.15s ease-out;
+  }
+
+  #submit-text:focus {
+    border-color: #777777;
+  }
+
+  #submit-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+  }
+
+  #char-count {
+    font-size: 12px;
+    color: #777777;
+  }
+
+  #submit-btn {
+    background: #ffffff;
+    color: #000000;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 16px;
+    font-family: 'Poppins', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.1s ease-out, opacity 0.15s ease-out;
+  }
+
+  #submit-btn:hover { transform: scale(1.05); }
+  #submit-btn:disabled { opacity: 0.4; cursor: default; transform: none; }
+
+  #submit-status {
+    margin-top: 8px;
+    min-height: 18px;
+    font-size: 13px;
+    color: #b3b3b3;
+  }
+
+  /* ---------- TOP TAB ---------- */
+  #tab-zone {
+    position: fixed;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 200px;
+    height: 44px;
+    z-index: 10;
+  }
+
+  #submissions-tab {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    transform: translateY(-30px);
+    height: 36px;
+    background: #1a1a1a;
+    color: #ffffff;
+    border: 1px solid #333333;
+    border-top: none;
+    border-radius: 0 0 10px 10px;
+    font-family: 'Poppins', sans-serif;
+    font-size: 13px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: transform 0.2s ease-out, background 0.15s ease-out;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  #tab-zone:hover #submissions-tab,
+  #submissions-tab:focus-visible {
+    transform: translateY(0);
+    background: #262626;
+  }
+
+  /* ---------- SUBMISSIONS VIEW ---------- */
+  #submissions-view {
+    min-height: 100vh;
+    padding: 70px 20px 40px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  #back-btn {
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    background: #1a1a1a;
+    color: #ffffff;
+    border: 1px solid #333333;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-family: 'Poppins', sans-serif;
+    font-size: 14px;
+    cursor: pointer;
+    z-index: 10;
+    transition: background 0.15s ease-out;
+  }
+
+  #back-btn:hover { background: #262626; }
+
+  #submissions-title {
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #b3b3b3;
+    margin: 0 0 24px;
+    font-weight: 400;
+  }
+
+  #submissions-list {
+    width: 500px;
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .submission {
+    background: #111111;
+    border: 1px solid #222222;
+    border-radius: 8px;
+    padding: 12px 14px;
+    user-select: text;
+    -webkit-user-select: text;
+  }
+
+  .submission-text {
+    font-size: 15px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-wrap: anywhere;
+  }
+
+  .submission-time {
+    margin-top: 6px;
+    font-size: 11px;
+    color: #777777;
+  }
+
+  #submissions-empty {
+    color: #777777;
+    font-size: 14px;
+  }
 </style>
 </head>
 <body>
 
-<a href="https://soundcloud.com/toast_03" target="_blank" rel="noopener noreferrer" id="soundcloud-link">
-  <img src="soundcloudicon.png" alt="SoundCloud" id="soundcloud-img">
-</a>
+<!-- ====== MAIN PAGE ====== -->
+<div id="main-view">
+  <a href="https://soundcloud.com/toast_03" target="_blank" rel="noopener noreferrer" id="soundcloud-link">
+    <img src="soundcloudicon.png" alt="SoundCloud" id="soundcloud-img">
+  </a>
 
-<p id="who-is-toast">who is toast</p>
+  <p id="who-is-toast">who is toast</p>
+
+  <div id="submit-box">
+    <div id="submit-label">Leave a message</div>
+    <textarea id="submit-text" maxlength="280" placeholder="type something..."></textarea>
+    <div id="submit-row">
+      <span id="char-count">0 / 280</span>
+      <button id="submit-btn" type="button">Submit</button>
+    </div>
+    <div id="submit-status"></div>
+  </div>
+</div>
+
+<!-- ====== SUBMISSIONS PAGE ====== -->
+<div id="submissions-view" hidden>
+  <button id="back-btn" type="button">&larr; back</button>
+  <h2 id="submissions-title">Submissions</h2>
+  <div id="submissions-list"></div>
+</div>
+
+<!-- ====== HOVER TAB ====== -->
+<div id="tab-zone">
+  <button id="submissions-tab" type="button">submissions</button>
+</div>
 
 <script>
+  /* ================= SETTINGS ================= */
+  // To make submissions shared between ALL visitors, paste your Firebase
+  // Realtime Database URL here, e.g. 'https://your-project-default-rtdb.firebaseio.com'
+  // Leave it empty to store submissions only in the visitor's own browser.
+  const DB_URL = 'https://submissions-3e3fc-default-rtdb.europe-west1.firebasedatabase.app';
+
+  const MAX_LENGTH = 280;
+  const COOLDOWN_MS = 10000;
+  /* ============================================ */
+
+  /* ---------- Existing logo + "who is toast" behavior ---------- */
   const link = document.getElementById('soundcloud-link');
   const img = document.getElementById('soundcloud-img');
 
@@ -128,6 +356,143 @@
   const toastText = document.getElementById('who-is-toast');
   toastText.addEventListener('click', function () {
     window.open('https://linktr.ee/toastW', '_blank', 'noopener,noreferrer');
+  });
+
+  /* ---------- Storage layer ---------- */
+  const LOCAL_KEY = 'toast_submissions';
+
+  async function saveSubmission(text) {
+    const entry = { text: text, time: Date.now() };
+    if (DB_URL) {
+      const res = await fetch(DB_URL.replace(/\/$/, '') + '/submissions.json', {
+        method: 'POST',
+        body: JSON.stringify(entry)
+      });
+      if (!res.ok) throw new Error('Save failed');
+      return;
+    }
+    let list = [];
+    try { list = JSON.parse(localStorage.getItem(LOCAL_KEY)) || []; } catch (e) {}
+    list.push(entry);
+    try { localStorage.setItem(LOCAL_KEY, JSON.stringify(list)); } catch (e) { throw new Error('Save failed'); }
+  }
+
+  async function loadSubmissions() {
+    let list = [];
+    if (DB_URL) {
+      const res = await fetch(DB_URL.replace(/\/$/, '') + '/submissions.json');
+      if (!res.ok) throw new Error('Load failed');
+      const data = await res.json();
+      list = data ? Object.values(data) : [];
+    } else {
+      try { list = JSON.parse(localStorage.getItem(LOCAL_KEY)) || []; } catch (e) {}
+    }
+    return list
+      .filter(function (s) { return s && typeof s.text === 'string'; })
+      .sort(function (a, b) { return (b.time || 0) - (a.time || 0); });
+  }
+
+  /* ---------- Submit box ---------- */
+  const textarea = document.getElementById('submit-text');
+  const submitBtn = document.getElementById('submit-btn');
+  const statusEl = document.getElementById('submit-status');
+  const charCount = document.getElementById('char-count');
+  let lastSubmit = 0;
+
+  textarea.addEventListener('input', function () {
+    charCount.textContent = textarea.value.length + ' / ' + MAX_LENGTH;
+  });
+
+  submitBtn.addEventListener('click', async function () {
+    const text = textarea.value.trim();
+    if (!text) {
+      statusEl.textContent = 'write something first!';
+      return;
+    }
+    const wait = COOLDOWN_MS - (Date.now() - lastSubmit);
+    if (wait > 0) {
+      statusEl.textContent = 'slow down, wait ' + Math.ceil(wait / 1000) + 's';
+      return;
+    }
+
+    submitBtn.disabled = true;
+    statusEl.textContent = 'sending...';
+    try {
+      await saveSubmission(text.slice(0, MAX_LENGTH));
+      lastSubmit = Date.now();
+      textarea.value = '';
+      charCount.textContent = '0 / ' + MAX_LENGTH;
+      statusEl.textContent = 'sent!';
+    } catch (e) {
+      statusEl.textContent = 'something went wrong, try again';
+    }
+    submitBtn.disabled = false;
+  });
+
+  /* ---------- View switching ---------- */
+  const mainView = document.getElementById('main-view');
+  const subView = document.getElementById('submissions-view');
+  const subList = document.getElementById('submissions-list');
+  const tabZone = document.getElementById('tab-zone');
+
+  async function showSubmissions() {
+    mainView.hidden = true;
+    tabZone.hidden = true;
+    subView.hidden = false;
+    window.scrollTo(0, 0);
+
+    subList.textContent = '';
+    const loading = document.createElement('div');
+    loading.id = 'submissions-empty';
+    loading.textContent = 'loading...';
+    subList.appendChild(loading);
+
+    let list;
+    try {
+      list = await loadSubmissions();
+    } catch (e) {
+      loading.textContent = "couldn't load submissions";
+      return;
+    }
+
+    subList.textContent = '';
+    if (list.length === 0) {
+      const empty = document.createElement('div');
+      empty.id = 'submissions-empty';
+      empty.textContent = 'nothing here yet';
+      subList.appendChild(empty);
+      return;
+    }
+
+    list.forEach(function (s) {
+      const card = document.createElement('div');
+      card.className = 'submission';
+
+      const t = document.createElement('div');
+      t.className = 'submission-text';
+      t.textContent = s.text;
+
+      const when = document.createElement('div');
+      when.className = 'submission-time';
+      when.textContent = s.time ? new Date(s.time).toLocaleString() : '';
+
+      card.appendChild(t);
+      card.appendChild(when);
+      subList.appendChild(card);
+    });
+  }
+
+  function showMain() {
+    subView.hidden = true;
+    mainView.hidden = false;
+    tabZone.hidden = false;
+    window.scrollTo(0, 0);
+  }
+
+  document.getElementById('submissions-tab').addEventListener('click', showSubmissions);
+  document.getElementById('back-btn').addEventListener('click', showMain);
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !subView.hidden) showMain();
   });
 </script>
 
