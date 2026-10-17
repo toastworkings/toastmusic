@@ -190,8 +190,8 @@
     top: 0;
     left: 50%;
     transform: translateX(-50%);
-    width: 200px;
-    height: 44px;
+    width: 240px;
+    height: 32px;
     z-index: 10;
   }
 
@@ -200,16 +200,23 @@
     top: 0;
     left: 0;
     right: 0;
-    transform: translateY(-30px);
-    height: 36px;
-    background: #1a1a1a;
+    height: 46px;
+    transform: translateY(-26px);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 0 0 7px;
+    background: #222222;
     color: #ffffff;
-    border: 1px solid #333333;
+    border: 1px solid #555555;
     border-top: none;
-    border-radius: 0 0 10px 10px;
+    border-radius: 0 0 12px 12px;
+    box-shadow: 0 2px 12px rgba(255, 255, 255, 0.1);
     font-family: 'Poppins', sans-serif;
-    font-size: 13px;
-    letter-spacing: 1px;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 1.5px;
     text-transform: uppercase;
     cursor: pointer;
     transition: transform 0.2s ease-out, background 0.15s ease-out;
@@ -220,7 +227,7 @@
   #tab-zone:hover #submissions-tab,
   #submissions-tab:focus-visible {
     transform: translateY(0);
-    background: #262626;
+    background: #2e2e2e;
   }
 
   /* ---------- SUBMISSIONS VIEW ---------- */
@@ -289,16 +296,23 @@
     min-width: 0;
   }
 
+  @property --h {
+    syntax: '<percentage>';
+    inherits: false;
+    initial-value: 5%;
+  }
+
   .glow {
+    --h: 5%;
     position: absolute;
     inset: 0;
     pointer-events: none;
     opacity: 0;
-    transition: opacity 0.8s ease;
+    transition: opacity 0.8s ease, --h 0.8s ease;
   }
 
-  .glow.green { background: linear-gradient(to top, rgb(22, 163, 74) 0%, rgba(22, 163, 74, 0) 100%); }
-  .glow.red   { background: linear-gradient(to top, rgb(220, 38, 38) 0%, rgba(220, 38, 38, 0) 100%); }
+  .glow.green { background: linear-gradient(to top, rgb(22, 163, 74) 0%, rgba(22, 163, 74, 0) var(--h)); }
+  .glow.red   { background: linear-gradient(to top, rgb(220, 38, 38) 0%, rgba(220, 38, 38, 0) var(--h)); }
 
   .vote-col {
     position: relative;
@@ -643,8 +657,12 @@
     s._els.down.classList.toggle('active', s.myVote === -1);
   }
 
-  // Green for the most upvoted, red for the most downvoted. Everything in
-  // between scales relative to those two extremes (the top one is 100%).
+  // Green for upvoted, red for downvoted. The colored part of the card grows
+  // from MIN_GLOW % of its height (barely any votes) up to MAX_GLOW % (the
+  // most upvoted / most downvoted submission). Change these two numbers to tweak.
+  const MIN_GLOW = 5;
+  const MAX_GLOW = 30;
+
   function paintGlow() {
     let max = 0;
     let min = 0;
@@ -655,17 +673,16 @@
     currentList.forEach(function (s) {
       const g = s._els && s._els.glow;
       if (!g) return;
-      if (s.score > 0) {
-        g.classList.remove('red');
-        g.classList.add('green');
-        g.style.opacity = Math.max(0.08, s.score / max).toFixed(3);
-      } else if (s.score < 0) {
-        g.classList.remove('green');
-        g.classList.add('red');
-        g.style.opacity = Math.max(0.08, s.score / min).toFixed(3);
-      } else {
+      if (s.score === 0) {
         g.style.opacity = 0;
+        return;
       }
+      const up = s.score > 0;
+      const ratio = up ? s.score / max : s.score / min;
+      g.classList.toggle('green', up);
+      g.classList.toggle('red', !up);
+      g.style.setProperty('--h', (MIN_GLOW + (MAX_GLOW - MIN_GLOW) * ratio).toFixed(2) + '%');
+      g.style.opacity = 1;
     });
   }
 
