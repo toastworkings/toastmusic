@@ -184,6 +184,13 @@
     color: #b3b3b3;
   }
 
+  #submit-hint {
+    margin-top: 14px;
+    font-size: 10px;
+    line-height: 1.5;
+    color: #3a3a3a;
+  }
+
   /* ---------- TOP TAB ---------- */
   @property --angle {
     syntax: '<angle>';
@@ -424,6 +431,7 @@
       <button id="submit-btn" type="button">Submit</button>
     </div>
     <div id="submit-status"></div>
+    <div id="submit-hint">mind you, you can type in ANY idea you want, such as "Make a Sample pack", "Release an album!", "Create a drumkit!" etc.</div>
   </div>
 </div>
 
@@ -502,8 +510,92 @@
     try { return JSON.parse(localStorage.getItem(key)) || fallback; } catch (e) { return fallback; }
   }
 
-  function isBlocked(t) {
+  /* ---------- Blocked-word filter ---------- */
+  // STEMS are blocked even inside longer words (fucking, bullshit, ...).
+  const BAD_STEMS = ('fuck shit bitch whore slut faggot nigger nigga niggah niggaz pussy dildo jizz ' +
+    'cocksuck cumshot blowjob handjob dickhead dumbass asshole arsehole asshat asswipe assclown ' +
+    'jackass douchebag bastard scheiss kurw pierdol spierdal wypierdal jebac jebany jebal jebie ' +
+    'jebn skurwy chuj pizd blyat blyad').split(' ');
+
+  // WORDS are blocked only as whole words, so innocent words like "class",
+  // "cocktail", "Dickens" or "assassin" are NOT caught. Add or remove words here.
+  const BAD_WORDS = new Set(('ass asses arse arses fatass smartass bollocks bollock bugger buggered ' +
+    'butthole buttholes boner cock cocks cunt cunts cunty crap craps crappy crapper damn damned ' +
+    'dammit damnit goddamn goddamned goddammit goddamnit hell hells dick dicks douche douches ' +
+    'fag fags fagot fagots dyke dykes lesbo lesbos tranny trannies shemale shemales retard retards ' +
+    'retarded tard tards spastic spaz spazz mong mongoloid spic spick spics chink chinks gook gooks ' +
+    'kike kikes wetback wetbacks beaner beaners coon coons darkie darky paki pakis raghead ragheads ' +
+    'towelhead towelheads zipperhead chinaman jap japs honky honkey honkies squaw injun halfbreed ' +
+    'cum cums cumming jerkoff jackoff wank wanks wanker wankers wanking tosser tossers tits titty ' +
+    'titties anus anal porn porno pornhub orgasm orgasms masturbate masturbating masturbation fap ' +
+    'fapping horny horney skank skanks skanky thot thots hoe hoes hooker hookers milf rape raped ' +
+    'rapes raping rapist rapists pedo pedos pedophile pedophiles paedo paedophile prick pricks piss ' +
+    'pisses pissed pissing pisser twat twats wtf stfu gtfo fml kys kms fuk fuks fuking fuq fck fcuk ' +
+    'fvck phuck shyt sht btch biatch bytch dck cnt ahole ngga ngger ' +
+    'puta putas puto putos putain merde merdes connard connards connasse salope salopes enculer ' +
+    'encule enculee nique niquer ntm mierda mierdas cabron cabrones pendejo pendejos pendeja joder ' +
+    'jodete chinga chingar chingada chingado culero verga vergas maricon maricones scheisse ' +
+    'arschloch wichser fotze fotzen hurensohn schlampe vaffanculo stronzo stronzi cazzo cazzi merda ' +
+    'puttana troia minchia cyka suka sukin pidor pidoras pidar mudak ebat ebal huy khuy zalupa govno ' +
+    'gandon huj huja huje cipa cipy cipka cipke dupa dupek dziwka dziwki dziwko suki suko pizda ' +
+    'zjeb zjeby debil debile cwel cwele ciota ciote kutas kutasy kutasa gowno gowna szmata szmaty ' +
+    'szmato pojeb pojeby').split(' '));
+
+  // Innocent words that happen to contain a blocked stem.
+  const ALLOWED_WORDS = new Set('shiitake shiitakes shitake shitakes snigger sniggers sniggered sniggering'.split(' '));
+
+  const LEET = { '0': 'o', '1': 'i', '3': 'e', '4': 'a', '5': 's', '7': 't', '@': 'a', '$': 's', '!': 'i', '+': 't' };
+
+  function dedupe(w) { return w.replace(/(.)\1+/g, '$1'); }
+  const BAD_STEMS_DEDUPED = BAD_STEMS.map(dedupe);
+
+  // lowercase, strip accents (so "ś" -> "s"), fix a few letters accents can't
+  function foldText(t) {
+    return t.toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/\u0142/g, 'l').replace(/\u00df/g, 'ss').replace(/\u00f8/g, 'o').replace(/\u0111/g, 'd');
+  }
+
+  function wordIsBad(w) {
+    if (!w || ALLOWED_WORDS.has(w)) return false;
+    const w2 = w.replace(/(.)\1{2,}/g, '$1$1');   // "assss" -> "ass"
+    if (BAD_WORDS.has(w) || BAD_WORDS.has(w2)) return true;
+    const w3 = dedupe(w);                           // "fuuuuck" -> "fuck"
+    for (let i = 0; i < BAD_STEMS.length; i++) {
+      const stem = BAD_STEMS[i];
+      if (w.indexOf(stem) !== -1) return true;
+      if (BAD_STEMS_DEDUPED[i] === stem) {
+        if (w3.indexOf(stem) !== -1) return true;   // stems without double letters: catch any stretching
+      } else if (w2.indexOf(stem) !== -1) {
+        return true;                                 // stems with double letters: only collapse long runs
+      }
+    }
+    return false;
+  }
+
+  function hasProfanity(text) {
+    const chunks = foldText(text).split(/\s+/).filter(Boolean);
+    let spaced = '';   // catches "f u c k" (single letters separated by spaces)
+    for (let i = 0; i <= chunks.length; i++) {
+      const chunk = chunks[i];
+      const plain = chunk ? chunk.replace(/[^a-z]/g, '') : '';
+      if (plain.length === 1) { spaced += plain; continue; }
+      if (spaced.length >= 3 && wordIsBad(spaced)) return true;
+      spaced = '';
+      if (!chunk) continue;
+      if (wordIsBad(plain)) return true;
+      // number/symbol swaps: sh1t, b!tch, @ss, $hit ...
+      const leet = chunk.replace(/[013457@$!+]/g, function (c) { return LEET[c]; }).replace(/[^a-z]/g, '');
+      if (leet !== plain && wordIsBad(leet)) return true;
+    }
+    return false;
+  }
+
+  function hasSkibidi(t) {
     return t.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '').indexOf('skibidi') !== -1;
+  }
+
+  function isBlocked(t) {
+    return hasSkibidi(t) || hasProfanity(t);
   }
 
   function normalizeText(t) {
