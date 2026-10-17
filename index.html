@@ -269,6 +269,8 @@
   }
 
   .submission {
+    position: relative;
+    overflow: hidden;
     display: flex;
     gap: 12px;
     align-items: flex-start;
@@ -281,11 +283,26 @@
   }
 
   .submission-body {
+    position: relative;
+    z-index: 1;
     flex: 1;
     min-width: 0;
   }
 
+  .glow {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.8s ease;
+  }
+
+  .glow.green { background: linear-gradient(to top, rgb(22, 163, 74) 0%, rgba(22, 163, 74, 0) 100%); }
+  .glow.red   { background: linear-gradient(to top, rgb(220, 38, 38) 0%, rgba(220, 38, 38, 0) 100%); }
+
   .vote-col {
+    position: relative;
+    z-index: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -626,6 +643,32 @@
     s._els.down.classList.toggle('active', s.myVote === -1);
   }
 
+  // Green for the most upvoted, red for the most downvoted. Everything in
+  // between scales relative to those two extremes (the top one is 100%).
+  function paintGlow() {
+    let max = 0;
+    let min = 0;
+    currentList.forEach(function (s) {
+      if (s.score > max) max = s.score;
+      if (s.score < min) min = s.score;
+    });
+    currentList.forEach(function (s) {
+      const g = s._els && s._els.glow;
+      if (!g) return;
+      if (s.score > 0) {
+        g.classList.remove('red');
+        g.classList.add('green');
+        g.style.opacity = Math.max(0.08, s.score / max).toFixed(3);
+      } else if (s.score < 0) {
+        g.classList.remove('green');
+        g.classList.add('red');
+        g.style.opacity = Math.max(0.08, s.score / min).toFixed(3);
+      } else {
+        g.style.opacity = 0;
+      }
+    });
+  }
+
   async function castVote(s, value) {
     if (s.pending) return;
     const prevVote = s.myVote;
@@ -635,12 +678,14 @@
     s.myVote = next;
     s.pending = true;
     paintVote(s);
+    paintGlow();
     try {
       await saveVote(s.id, next);
     } catch (e) {
       s.myVote = prevVote;
       s.score = prevScore;
       paintVote(s);
+      paintGlow();
     }
     s.pending = false;
   }
@@ -663,6 +708,10 @@
     currentList.forEach(function (s) {
       const card = document.createElement('div');
       card.className = 'submission';
+
+      const glow = document.createElement('div');
+      glow.className = 'glow';
+      card.appendChild(glow);
 
       const col = document.createElement('div');
       col.className = 'vote-col';
@@ -699,11 +748,12 @@
       card.appendChild(body);
       subList.appendChild(card);
 
-      s._els = { up: up, down: down, score: score };
+      s._els = { up: up, down: down, score: score, glow: glow };
       paintVote(s);
       up.addEventListener('click', function () { castVote(s, 1); });
       down.addEventListener('click', function () { castVote(s, -1); });
     });
+    paintGlow();
   }
 
   document.querySelectorAll('.sort-btn').forEach(function (btn) {
