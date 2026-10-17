@@ -17,12 +17,6 @@
     position: relative;
     user-select: none;
     -webkit-user-select: none;
-    transition: background-color 2s ease;
-  }
-
-  body > *:not(.click-ripple):not(.click-splash) {
-    position: relative;
-    z-index: 1;
   }
 
   #soundcloud-link img {
@@ -101,41 +95,6 @@
   #newest-release a:hover #newest-release-title {
     font-weight: 700;
   }
-
-  .click-splash {
-    position: fixed;
-    width: 130px;
-    height: 130px;
-    transform: translate(-50%, -50%) scale(0) rotate(var(--splash-rotation, 0deg));
-    pointer-events: none;
-    z-index: 0;
-    will-change: transform, opacity;
-    animation: splashGrow 0.3s ease-out forwards;
-  }
-
-  @keyframes splashGrow {
-    0% { transform: translate(-50%, -50%) scale(0) rotate(var(--splash-rotation, 0deg)); }
-    100% { transform: translate(-50%, -50%) scale(var(--splash-scale, 1)) rotate(var(--splash-rotation, 0deg)); }
-  }
-
-  #too-many-splashes {
-    position: fixed;
-    top: 40px;
-    left: 50%;
-    transform: translateX(-50%);
-    color: #ffffff;
-    font-size: 28px;
-    font-weight: 700;
-    text-align: center;
-    opacity: 0;
-    pointer-events: none;
-    z-index: 3;
-    transition: opacity 4s ease;
-  }
-
-  #too-many-splashes.visible {
-    opacity: 1;
-  }
 </style>
 </head>
 <body>
@@ -145,10 +104,6 @@
 </a>
 
 <p id="who-is-toast">who is toast</p>
-
-<!-- ============================================================ -->
-
-<p id="too-many-splashes">too many splashes bub &gt;:c</p>
 
 <script>
   const link = document.getElementById('soundcloud-link');
@@ -173,79 +128,6 @@
   const toastText = document.getElementById('who-is-toast');
   toastText.addEventListener('click', function () {
     window.open('https://linktr.ee/toastW', '_blank', 'noopener,noreferrer');
-  });
-
-  const splashImages = ['splash1.png', 'splash2.png', 'splash3.png', 'splash4.png', 'splash5.png', 'splash6.png'];
-  splashImages.forEach(function (src) {
-    const preload = new Image();
-    preload.src = src;
-  });
-
-  let splashCount = 0;
-  let limitReached = false;
-
-  function placeSplash(x, y) {
-    if (limitReached) return;
-
-    const splash = document.createElement('img');
-    splash.src = splashImages[Math.floor(Math.random() * splashImages.length)];
-    splash.className = 'click-splash';
-    splash.decoding = 'async';
-    splash.loading = 'eager';
-    const size = Math.floor(Math.random() * (300 - 48 + 1)) + 48;
-    splash.style.setProperty('--splash-scale', (size / 130).toFixed(3));
-    splash.style.left = x + 'px';
-    splash.style.top = y + 'px';
-    if (Math.random() < 0.5) {
-      const rotation = Math.floor(Math.random() * 361);
-      splash.style.setProperty('--splash-rotation', rotation + 'deg');
-    }
-    document.body.appendChild(splash);
-
-    splashCount++;
-    if (splashCount >= 300) {
-      limitReached = true;
-      document.body.style.backgroundColor = '#b84ed6';
-      document.getElementById('too-many-splashes').classList.add('visible');
-      setTimeout(function () {
-        document.querySelectorAll('.click-splash').forEach(function (el) {
-          el.remove();
-        });
-      }, 2000);
-    }
-  }
-
-  let isDragging = false;
-  let hasMoved = false;
-  let lastX = 0;
-  let lastY = 0;
-  const dotSpacing = 70;
-
-  document.addEventListener('mousedown', function (e) {
-    e.preventDefault();
-    isDragging = true;
-    hasMoved = false;
-    lastX = e.clientX;
-    lastY = e.clientY;
-  });
-
-  document.addEventListener('mousemove', function (e) {
-    if (!isDragging) return;
-    const dx = e.clientX - lastX;
-    const dy = e.clientY - lastY;
-    if (Math.sqrt(dx * dx + dy * dy) >= dotSpacing) {
-      hasMoved = true;
-      placeSplash(e.clientX, e.clientY);
-      lastX = e.clientX;
-      lastY = e.clientY;
-    }
-  });
-
-  document.addEventListener('mouseup', function (e) {
-    if (isDragging && !hasMoved) {
-      placeSplash(e.clientX, e.clientY);
-    }
-    isDragging = false;
   });
 </script>
 
