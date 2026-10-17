@@ -185,6 +185,16 @@
   }
 
   /* ---------- TOP TAB ---------- */
+  @property --angle {
+    syntax: '<angle>';
+    inherits: false;
+    initial-value: 0deg;
+  }
+
+  @keyframes tabSpin {
+    to { --angle: 360deg; }
+  }
+
   #tab-zone {
     position: fixed;
     top: 0;
@@ -196,6 +206,7 @@
   }
 
   #submissions-tab {
+    --angle: 0deg;
     position: absolute;
     top: 0;
     left: 0;
@@ -206,11 +217,13 @@
     align-items: flex-end;
     justify-content: center;
     padding: 0 0 7px;
-    background: #222222;
     color: #ffffff;
-    border: 1px solid #555555;
+    border: 2px solid transparent;
     border-top: none;
     border-radius: 0 0 12px 12px;
+    background-image: linear-gradient(#222222, #222222), linear-gradient(#555555, #555555);
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
     box-shadow: 0 2px 12px rgba(255, 255, 255, 0.1);
     font-family: 'Poppins', sans-serif;
     font-size: 14px;
@@ -219,7 +232,7 @@
     letter-spacing: 1.5px;
     text-transform: uppercase;
     cursor: pointer;
-    transition: transform 0.2s ease-out, background 0.15s ease-out;
+    transition: transform 0.2s ease-out;
     user-select: none;
     -webkit-user-select: none;
   }
@@ -227,7 +240,10 @@
   #tab-zone:hover #submissions-tab,
   #submissions-tab:focus-visible {
     transform: translateY(0);
-    background: #2e2e2e;
+    background-image:
+      linear-gradient(#2a2a2a, #2a2a2a),
+      conic-gradient(from var(--angle), #ff3b3b, #ffb000, #ffee00, #2bff5a, #00e5ff, #3b6bff, #c43bff, #ff3b9a, #ff3b3b);
+    animation: tabSpin 2.5s linear infinite;
   }
 
   /* ---------- SUBMISSIONS VIEW ---------- */
@@ -311,8 +327,9 @@
     transition: opacity 0.8s ease, --h 0.8s ease;
   }
 
-  .glow.green { background: linear-gradient(to top, rgb(22, 163, 74) 0%, rgba(22, 163, 74, 0) var(--h)); }
-  .glow.red   { background: linear-gradient(to top, rgb(220, 38, 38) 0%, rgba(220, 38, 38, 0) var(--h)); }
+  /* eased fade (many stops) so there is no visible hard edge */
+  .glow.green { background: linear-gradient(to top, rgba(22, 163, 74, 1) 0%, rgba(22, 163, 74, 0.738) calc(var(--h) * 0.19), rgba(22, 163, 74, 0.541) calc(var(--h) * 0.34), rgba(22, 163, 74, 0.382) calc(var(--h) * 0.47), rgba(22, 163, 74, 0.278) calc(var(--h) * 0.565), rgba(22, 163, 74, 0.194) calc(var(--h) * 0.65), rgba(22, 163, 74, 0.126) calc(var(--h) * 0.73), rgba(22, 163, 74, 0.075) calc(var(--h) * 0.802), rgba(22, 163, 74, 0.042) calc(var(--h) * 0.861), rgba(22, 163, 74, 0.021) calc(var(--h) * 0.91), rgba(22, 163, 74, 0.008) calc(var(--h) * 0.952), rgba(22, 163, 74, 0.003) calc(var(--h) * 0.982), rgba(22, 163, 74, 0) var(--h)); }
+  .glow.red   { background: linear-gradient(to top, rgba(220, 38, 38, 1) 0%, rgba(220, 38, 38, 0.738) calc(var(--h) * 0.19), rgba(220, 38, 38, 0.541) calc(var(--h) * 0.34), rgba(220, 38, 38, 0.382) calc(var(--h) * 0.47), rgba(220, 38, 38, 0.278) calc(var(--h) * 0.565), rgba(220, 38, 38, 0.194) calc(var(--h) * 0.65), rgba(220, 38, 38, 0.126) calc(var(--h) * 0.73), rgba(220, 38, 38, 0.075) calc(var(--h) * 0.802), rgba(220, 38, 38, 0.042) calc(var(--h) * 0.861), rgba(220, 38, 38, 0.021) calc(var(--h) * 0.91), rgba(220, 38, 38, 0.008) calc(var(--h) * 0.952), rgba(220, 38, 38, 0.003) calc(var(--h) * 0.982), rgba(220, 38, 38, 0) var(--h)); }
 
   .vote-col {
     position: relative;
