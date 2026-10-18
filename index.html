@@ -112,7 +112,8 @@
     text-align: center;
   }
 
-  #blocked-msg {
+  #blocked-msg,
+  #comment-blocked-msg {
     min-height: 18px;
     margin-bottom: 6px;
     font-size: 13px;
@@ -127,7 +128,8 @@
     margin-bottom: 10px;
   }
 
-  #submit-text {
+  #submit-text,
+  #comment-text {
     box-sizing: border-box;
     width: 100%;
     height: 80px;
@@ -145,23 +147,29 @@
     transition: border-color 0.15s ease-out;
   }
 
-  #submit-text:focus {
+  #comment-text { height: 64px; }
+
+  #submit-text:focus,
+  #comment-text:focus {
     border-color: #777777;
   }
 
-  #submit-row {
+  #submit-row,
+  #comment-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-top: 8px;
   }
 
-  #char-count {
+  #char-count,
+  #comment-char-count {
     font-size: 12px;
     color: #777777;
   }
 
-  #submit-btn {
+  #submit-btn,
+  #comment-btn {
     background: #ffffff;
     color: #000000;
     border: none;
@@ -174,10 +182,13 @@
     transition: transform 0.1s ease-out, opacity 0.15s ease-out;
   }
 
-  #submit-btn:hover { transform: scale(1.05); }
-  #submit-btn:disabled { opacity: 0.4; cursor: default; transform: none; }
+  #submit-btn:hover,
+  #comment-btn:hover { transform: scale(1.05); }
+  #submit-btn:disabled,
+  #comment-btn:disabled { opacity: 0.4; cursor: default; transform: none; }
 
-  #submit-status {
+  #submit-status,
+  #comment-status {
     margin-top: 8px;
     min-height: 18px;
     font-size: 13px;
@@ -186,9 +197,9 @@
 
   #submit-hint {
     margin-top: 14px;
-    font-size: 10px;
+    font-size: 12px;
     line-height: 1.5;
-    color: #3a3a3a;
+    color: #666666;
   }
 
   #submit-text:disabled { opacity: 0.6; }
@@ -328,7 +339,8 @@
   }
 
   /* ---------- SUBMISSIONS VIEW ---------- */
-  #submissions-view {
+  #submissions-view,
+  #comments-view {
     min-height: 100vh;
     padding: 70px 20px 40px;
     box-sizing: border-box;
@@ -337,7 +349,7 @@
     align-items: center;
   }
 
-  #back-btn {
+  .back-btn {
     position: fixed;
     top: 16px;
     left: 16px;
@@ -353,9 +365,10 @@
     transition: background 0.15s ease-out;
   }
 
-  #back-btn:hover { background: #262626; }
+  .back-btn:hover { background: #262626; }
 
-  #submissions-title {
+  #submissions-title,
+  #comments-title {
     font-size: 12px;
     letter-spacing: 2px;
     text-transform: uppercase;
@@ -374,7 +387,6 @@
 
   .submission {
     position: relative;
-    overflow: hidden;
     display: flex;
     gap: 12px;
     align-items: flex-start;
@@ -382,9 +394,13 @@
     border: 1px solid #222222;
     border-radius: 8px;
     padding: 12px 14px;
+    cursor: pointer;
+    transition: border-color 0.15s ease-out, box-shadow 0.4s ease-out;
     user-select: text;
     -webkit-user-select: text;
   }
+
+  .submission:hover { border-color: #3a3a3a; }
 
   .submission-body {
     position: relative;
@@ -403,6 +419,7 @@
     --h: 5%;
     position: absolute;
     inset: 0;
+    border-radius: 7px;
     pointer-events: none;
     opacity: 0;
     transition: opacity 0.8s ease, --h 0.8s ease;
@@ -411,6 +428,21 @@
   /* eased fade (many stops) so there is no visible hard edge */
   .glow.green { background: linear-gradient(to top, rgba(22, 163, 74, 1) 0%, rgba(22, 163, 74, 0.738) calc(var(--h) * 0.19), rgba(22, 163, 74, 0.541) calc(var(--h) * 0.34), rgba(22, 163, 74, 0.382) calc(var(--h) * 0.47), rgba(22, 163, 74, 0.278) calc(var(--h) * 0.565), rgba(22, 163, 74, 0.194) calc(var(--h) * 0.65), rgba(22, 163, 74, 0.126) calc(var(--h) * 0.73), rgba(22, 163, 74, 0.075) calc(var(--h) * 0.802), rgba(22, 163, 74, 0.042) calc(var(--h) * 0.861), rgba(22, 163, 74, 0.021) calc(var(--h) * 0.91), rgba(22, 163, 74, 0.008) calc(var(--h) * 0.952), rgba(22, 163, 74, 0.003) calc(var(--h) * 0.982), rgba(22, 163, 74, 0) var(--h)); }
   .glow.red   { background: linear-gradient(to top, rgba(220, 38, 38, 1) 0%, rgba(220, 38, 38, 0.738) calc(var(--h) * 0.19), rgba(220, 38, 38, 0.541) calc(var(--h) * 0.34), rgba(220, 38, 38, 0.382) calc(var(--h) * 0.47), rgba(220, 38, 38, 0.278) calc(var(--h) * 0.565), rgba(220, 38, 38, 0.194) calc(var(--h) * 0.65), rgba(220, 38, 38, 0.126) calc(var(--h) * 0.73), rgba(220, 38, 38, 0.075) calc(var(--h) * 0.802), rgba(220, 38, 38, 0.042) calc(var(--h) * 0.861), rgba(220, 38, 38, 0.021) calc(var(--h) * 0.91), rgba(220, 38, 38, 0.008) calc(var(--h) * 0.952), rgba(220, 38, 38, 0.003) calc(var(--h) * 0.982), rgba(220, 38, 38, 0) var(--h)); }
+
+  /* ---------- LEFT: how many people interacted ---------- */
+  .stats-col {
+    position: relative;
+    z-index: 1;
+    flex: 0 0 62px;
+    padding-top: 2px;
+    font-size: 11px;
+    line-height: 1.5;
+    color: #888888;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .stats-col .stat-comments { color: #b3b3b3; }
 
   .vote-col {
     position: relative;
@@ -442,6 +474,86 @@
     font-weight: 700;
     min-width: 24px;
     text-align: center;
+  }
+
+  /* ---------- RIGHT: heart ---------- */
+  .heart-col {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    min-width: 50px;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .heart-btn {
+    background: none;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    line-height: 0;
+  }
+
+  .heart-btn svg {
+    width: 28px;
+    height: 28px;
+    display: block;
+  }
+
+  .heart-count {
+    font-size: 10px;
+    color: #888888;
+    white-space: nowrap;
+  }
+
+  /* ---------- HYPE MODE ---------- */
+  .submission.hype {
+    z-index: 5;
+    border-color: #ff4d6d;
+    box-shadow: 0 0 24px rgba(255, 45, 85, 0.45);
+    animation: hypeShake 0.3s linear infinite;
+  }
+
+  @keyframes hypeShake {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    20%      { transform: translate(-1.5px, 1px) rotate(-0.35deg); }
+    40%      { transform: translate(1.5px, -1px) rotate(0.35deg); }
+    60%      { transform: translate(-1px, -1.5px) rotate(-0.25deg); }
+    80%      { transform: translate(1px, 1.5px) rotate(0.25deg); }
+  }
+
+  .hype-tag {
+    position: absolute;
+    top: -10px;
+    right: 14px;
+    z-index: 4;
+    padding: 1px 10px;
+    border-radius: 10px;
+    background: linear-gradient(90deg, #ff2d55, #ff7a45);
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    pointer-events: none;
+    animation: hypePulse 0.9s ease-in-out infinite;
+  }
+
+  @keyframes hypePulse {
+    50% { transform: scale(1.12); }
+  }
+
+  .hype-heart {
+    position: absolute;
+    z-index: 3;
+    pointer-events: none;
+    line-height: 1;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .submission.hype, .hype-tag { animation: none; }
   }
 
   #sort-bar {
@@ -480,9 +592,66 @@
     color: #777777;
   }
 
-  #submissions-empty {
+  #submissions-empty,
+  #comments-empty {
     color: #777777;
     font-size: 14px;
+  }
+
+  @media (max-width: 460px) {
+    .stats-col { flex-basis: 48px; font-size: 10px; }
+    .submission { gap: 8px; padding: 12px 10px; }
+  }
+
+  /* ---------- COMMENTS VIEW ---------- */
+  #comments-submission {
+    width: 500px;
+    max-width: 100%;
+    box-sizing: border-box;
+    background: #111111;
+    border: 1px solid #222222;
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 20px;
+    user-select: text;
+    -webkit-user-select: text;
+  }
+
+  #comment-box {
+    width: 500px;
+    max-width: 100%;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  #comments-list {
+    width: 500px;
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .comment {
+    background: #111111;
+    border: 1px solid #222222;
+    border-radius: 8px;
+    padding: 10px 12px;
+    user-select: text;
+    -webkit-user-select: text;
+  }
+
+  .comment-text {
+    font-size: 14px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-wrap: anywhere;
+  }
+
+  .comment-time {
+    margin-top: 5px;
+    font-size: 11px;
+    color: #777777;
   }
 </style>
 </head>
@@ -511,13 +680,33 @@
 
 <!-- ====== SUBMISSIONS PAGE ====== -->
 <div id="submissions-view" hidden>
-  <button id="back-btn" type="button">&larr; back</button>
+  <button id="back-btn" class="back-btn" type="button">&larr; back</button>
   <h2 id="submissions-title">Submissions</h2>
   <div id="sort-bar">
     <button type="button" class="sort-btn active" data-sort="top">top</button>
     <button type="button" class="sort-btn" data-sort="new">new</button>
   </div>
   <div id="submissions-list"></div>
+</div>
+
+<!-- ====== COMMENTS PAGE ====== -->
+<div id="comments-view" hidden>
+  <button id="comments-back-btn" class="back-btn" type="button">&larr; back</button>
+  <h2 id="comments-title">Comments</h2>
+  <div id="comments-submission">
+    <div class="submission-text" id="comments-submission-text"></div>
+    <div class="submission-time" id="comments-submission-meta"></div>
+  </div>
+  <div id="comment-box">
+    <div id="comment-blocked-msg"></div>
+    <textarea id="comment-text" maxlength="200" placeholder="add your comment..."></textarea>
+    <div id="comment-row">
+      <span id="comment-char-count">0 / 200</span>
+      <button id="comment-btn" type="button">Comment</button>
+    </div>
+    <div id="comment-status"></div>
+  </div>
+  <div id="comments-list"></div>
 </div>
 
 <!-- ====== UNDO POPUP ====== -->
@@ -542,6 +731,11 @@
   const MAX_LENGTH = 280;
   const COOLDOWN_MS = 30 * 60 * 1000;   // 30 minutes between submissions
   const UNDO_MS = 10000;                // time to change your mind after hitting submit
+
+  const HEARTS_GOAL = 1000;             // total heart clicks (everyone combined) that trigger HYPE
+  const HYPE_MS = 60 * 1000;            // how long HYPE mode lasts
+  const COMMENT_MAX = 200;              // max comment length
+  const COMMENT_COOLDOWN_MS = 15 * 1000; // wait between comments
   /* ============================================ */
 
   /* ---------- Existing logo + "who is toast" behavior ---------- */
@@ -592,39 +786,20 @@
     try { return JSON.parse(localStorage.getItem(key)) || fallback; } catch (e) { return fallback; }
   }
 
-  /* ---------- Blocked-word filter ---------- */
-  // STEMS are blocked even inside longer words (fucking, bullshit, ...).
-  const BAD_STEMS = ('/shit bitch whore slut faggot nigger nigga niggah niggaz pussy dildo jizz ' +
-    'cocksuck cumshot blowjob handjob dickhead dumbass asshole arsehole asshat asswipe assclown ' +
-    'jackass douchebag bastard scheiss kurw pierdol spierdal wypierdal jebac jebany jebal jebie ' +
-    'jebn skurwy chuj pizd blyat blyad').split(' ');
+  /* ---------- Blocked-word filter (only the really bad stuff) ---------- */
+  // STEMS are blocked even inside longer words.
+  const BAD_STEMS = ('nigger nigga niggah niggaz faggot').split(' ');
 
-  // WORDS are blocked only as whole words, so innocent words like "class",
-  // "cocktail", "Dickens" or "assassin" are NOT caught. Add or remove words here.
-  const BAD_WORDS = new Set(('ass asses arse arses fatass smartass bollocks bollock bugger buggered ' +
-    'butthole buttholes boner cock cocks cunt cunts cunty crap craps crappy crapper damn damned ' +
-    'dammit damnit goddamn goddamned goddammit goddamnit hells dick dicks douche douches ' +
-    'fag fags fagot fagots dyke dykes lesbo lesbos tranny trannies shemale shemales retard retards ' +
-    'retarded tard tards spastic spaz spazz mong mongoloid spic spick spics chink chinks gook gooks ' +
-    'kike kikes wetback wetbacks beaner beaners coon coons darkie darky paki pakis raghead ragheads ' +
-    'towelhead towelheads zipperhead chinaman jap japs honky honkey honkies squaw injun halfbreed ' +
-    'cum cums cumming jerkoff jackoff wank wanks wanker wankers wanking tosser tossers tits titty ' +
-    'titties anus anal porn porno pornhub orgasm orgasms masturbate masturbating masturbation fap ' +
-    'fapping horny horney skank skanks skanky thot thots hoe hoes hooker hookers milf rape raped ' +
-    'rapes raping rapist rapists pedo pedos pedophile pedophiles paedo paedophile prick pricks piss ' +
-    'pisses pissed pissing pisser twat twats wtf stfu gtfo fml kys kms fuk fuks fuking fuq fck fcuk ' +
-    'fvck phuck shyt sht btch biatch bytch dck cnt ahole ngga ngger ' +
-    'puta putas puto putos putain merde merdes connard connards connasse salope salopes enculer ' +
-    'encule enculee nique niquer ntm mierda mierdas cabron cabrones pendejo pendejos pendeja joder ' +
-    'jodete chinga chingar chingada chingado culero verga vergas maricon maricones scheisse ' +
-    'arschloch wichser fotze fotzen hurensohn schlampe vaffanculo stronzo stronzi cazzo cazzi merda ' +
-    'puttana troia minchia cyka suka sukin pidor pidoras pidar mudak ebat ebal huy khuy zalupa govno ' +
-    'gandon huj huja huje cipa cipy cipka cipke dupa dupek dziwka dziwki dziwko suki suko pizda ' +
-    'zjeb zjeby debil debile cwel cwele ciota ciote kutas kutasy kutasa gowno gowna szmata szmaty ' +
-    'szmato pojeb pojeby').split(' '));
+  // WORDS are blocked only as whole words, so innocent words are NOT caught.
+  // Only slurs, the c-word and "kys" are blocked. Add or remove words here.
+  // (Regular swearing like "shit", "ass" or "damn" is allowed.)
+  const BAD_WORDS = new Set(('fag fags fagot fagots cunt cunts cunty retard retards retarded tard tards ' +
+    'tranny trannies shemale shemales kike kikes spic spick spics chink chinks gook gooks wetback ' +
+    'wetbacks beaner beaners coon coons darkie darky paki pakis raghead ragheads towelhead towelheads ' +
+    'zipperhead chinaman jap japs dyke dykes mongoloid spastic halfbreed squaw ngga ngger kys').split(' '));
 
   // Innocent words that happen to contain a blocked stem.
-  const ALLOWED_WORDS = new Set('shiitake shiitakes shitake shitakes snigger sniggers sniggered sniggering'.split(' '));
+  const ALLOWED_WORDS = new Set('snigger sniggers sniggered sniggering'.split(' '));
 
   const LEET = { '0': 'o', '1': 'i', '3': 'e', '4': 'a', '5': 's', '7': 't', '@': 'a', '$': 's', '!': 'i', '+': 't' };
 
@@ -639,9 +814,9 @@
 
   function wordIsBad(w) {
     if (!w || ALLOWED_WORDS.has(w)) return false;
-    const w2 = w.replace(/(.)\1{2,}/g, '$1$1');   // "assss" -> "ass"
+    const w2 = w.replace(/(.)\1{2,}/g, '$1$1');   // "cuuunt" -> "cuunt"
     if (BAD_WORDS.has(w) || BAD_WORDS.has(w2)) return true;
-    const w3 = dedupe(w);                           // "fuuuuck" -> "fuck"
+    const w3 = dedupe(w);
     for (let i = 0; i < BAD_STEMS.length; i++) {
       const stem = BAD_STEMS[i];
       if (w.indexOf(stem) !== -1) return true;
@@ -656,7 +831,7 @@
 
   function hasProfanity(text) {
     const chunks = foldText(text).split(/\s+/).filter(Boolean);
-    let spaced = '';   // catches "f u c k" (single letters separated by spaces)
+    let spaced = '';   // catches "k y s" (single letters separated by spaces)
     for (let i = 0; i <= chunks.length; i++) {
       const chunk = chunks[i];
       const plain = chunk ? chunk.replace(/[^a-z]/g, '') : '';
@@ -665,7 +840,7 @@
       spaced = '';
       if (!chunk) continue;
       if (wordIsBad(plain)) return true;
-      // number/symbol swaps: sh1t, b!tch, @ss, $hit ...
+      // number/symbol swaps: c0nt, f@g ...
       const leet = chunk.replace(/[013457@$!+]/g, function (c) { return LEET[c]; }).replace(/[^a-z]/g, '');
       if (leet !== plain && wordIsBad(leet)) return true;
     }
@@ -727,6 +902,71 @@
     try { localStorage.setItem(LOCAL_KEY, JSON.stringify(list)); } catch (e) { throw new Error('Save failed'); }
   }
 
+  /* ---------- Small database helpers (hearts, hype, comments) ---------- */
+  // Uses Firebase when DB_URL is set, otherwise the visitor's own browser.
+  const LOCAL_DB_KEY = 'toast_localdb';
+
+  function localGet(path) {
+    let node = readLocal(LOCAL_DB_KEY, {});
+    const keys = path.split('/');
+    for (let i = 0; i < keys.length; i++) {
+      if (node === null || typeof node !== 'object' || !(keys[i] in node)) return null;
+      node = node[keys[i]];
+    }
+    return node;
+  }
+
+  function localPut(path, value) {
+    const tree = readLocal(LOCAL_DB_KEY, {});
+    const keys = path.split('/');
+    let node = tree;
+    for (let i = 0; i < keys.length - 1; i++) {
+      if (node[keys[i]] === null || typeof node[keys[i]] !== 'object') node[keys[i]] = {};
+      node = node[keys[i]];
+    }
+    const last = keys[keys.length - 1];
+    if (value === null) delete node[last];
+    else node[last] = value;
+    try { localStorage.setItem(LOCAL_DB_KEY, JSON.stringify(tree)); } catch (e) {}
+  }
+
+  async function dbGet(path) {
+    if (DB_URL) {
+      const res = await fetch(dbBase + '/' + path + '.json');
+      if (!res.ok) throw new Error('Load failed');
+      return res.json();
+    }
+    return localGet(path);
+  }
+
+  async function dbPut(path, value, keepalive) {
+    if (DB_URL) {
+      return fetch(dbBase + '/' + path + '.json', {
+        method: 'PUT',
+        body: JSON.stringify(value),
+        keepalive: !!keepalive
+      });
+    }
+    localPut(path, value);
+    return { ok: true, status: 200 };
+  }
+
+  async function dbPost(path, value) {
+    if (DB_URL) {
+      const res = await fetch(dbBase + '/' + path + '.json', { method: 'POST', body: JSON.stringify(value) });
+      if (!res.ok) throw new Error('Save failed');
+      const data = await res.json();
+      return data && data.name;
+    }
+    const id = 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    localPut(path + '/' + id, value);
+    return id;
+  }
+
+  function validComment(c) {
+    return c && typeof c.text === 'string' && !isBlocked(c.text);
+  }
+
   async function loadSubmissions() {
     let subs = [];
     let votes = {};
@@ -747,6 +987,17 @@
       });
       votes = readLocal(LOCAL_VOTES_KEY, {});
     }
+
+    // hearts, hype and comments (if these fail, e.g. rules not updated yet, the list still works)
+    const extras = await Promise.all([
+      dbGet('hearts').catch(function () { return null; }),
+      dbGet('hype').catch(function () { return null; }),
+      dbGet('comments').catch(function () { return null; })
+    ]);
+    const heartsAll = extras[0] || {};
+    const hypeAll = extras[1] || {};
+    const commentsAll = extras[2] || {};
+
     const seen = {};
     return subs
       .filter(function (s) { return s && typeof s.text === 'string' && !isBlocked(s.text); })
@@ -762,6 +1013,10 @@
         s.votes = Object.assign({}, v);
         s.score = calculateScore(s.votes);
         s.myVote = s.votes[voterId] === 1 ? 1 : (s.votes[voterId] === -1 ? -1 : 0);
+        s.hearts = Object.assign({}, heartsAll[s.id] || {});
+        s.hype = Object.assign({}, hypeAll[s.id] || {});
+        const cm = commentsAll[s.id] || {};
+        s.commentCount = Object.keys(cm).filter(function (k) { return validComment(cm[k]); }).length;
         return s;
       });
   }
@@ -910,15 +1165,172 @@
   const mainView = document.getElementById('main-view');
   const subView = document.getElementById('submissions-view');
   const subList = document.getElementById('submissions-list');
+  const commentsView = document.getElementById('comments-view');
   const tabZone = document.getElementById('tab-zone');
 
   let currentList = [];
   let sortMode = 'top';
 
+  /* ---------- Hearts + HYPE helpers ---------- */
+  function heartTotal(s) {
+    const h = s.hearts || {};
+    return Object.keys(h).reduce(function (t, k) {
+      const v = Number(h[k]);
+      return t + (isFinite(v) && v > 0 ? Math.floor(v) : 0);
+    }, 0);
+  }
+
+  // white -> red as the heart total gets closer to the goal
+  function heartColor(p) {
+    const g = Math.round(255 - (255 - 45) * p);
+    const b = Math.round(255 - (255 - 85) * p);
+    return 'rgb(255,' + g + ',' + b + ')';
+  }
+
+  function hypeStart(s) {
+    const h = s.hype || {};
+    return Object.keys(h).reduce(function (m, k) {
+      const v = Number(h[k]);
+      return isFinite(v) && v > m ? v : m;
+    }, 0);
+  }
+
+  function paintHeart(s) {
+    const els = s._els;
+    if (!els) return;
+    const total = heartTotal(s);
+    const hyped = !!s.hypeActive;
+    const progress = total % HEARTS_GOAL;
+    const p = hyped ? 1 : progress / HEARTS_GOAL;
+    const color = heartColor(p);
+    els.heartPath.setAttribute('stroke', color);
+    els.heartPath.setAttribute('fill', hyped ? color : 'none');
+    els.heartCount.textContent = hyped ? 'HYPE!' : progress + ' / ' + HEARTS_GOAL;
+  }
+
+  function paintStats(s) {
+    const els = s._els;
+    if (!els) return;
+    const voters = Object.keys(s.votes || {}).filter(function (k) {
+      return s.votes[k] === 1 || s.votes[k] === -1;
+    }).length;
+    const c = s.commentCount || 0;
+    els.votesTxt.textContent = voters + (voters === 1 ? ' vote' : ' votes');
+    els.commentsTxt.textContent = c + (c === 1 ? ' comment' : ' comments');
+  }
+
   function paintVote(s) {
     s._els.score.textContent = s.score;
     s._els.up.classList.toggle('active', s.myVote === 1);
     s._els.down.classList.toggle('active', s.myVote === -1);
+    paintStats(s);
+  }
+
+  function paintHype(s) {
+    if (!s._els) return;
+    s._els.card.classList.toggle('hype', !!s.hypeActive);
+    s._els.tag.hidden = !s.hypeActive;
+    paintHeart(s);
+  }
+
+  // Works out which submissions are in HYPE mode right now. Returns true if anything changed.
+  function refreshHypeStates() {
+    let changed = false;
+    const now = Date.now();
+    currentList.forEach(function (s) {
+      const start = hypeStart(s);
+      const active = start > 0 && now - start < HYPE_MS;
+      s.hypeStartTs = start;
+      if (active !== !!s.hypeActive) {
+        s.hypeActive = active;
+        changed = true;
+        paintHype(s);
+      }
+    });
+    return changed;
+  }
+
+  // Every full HEARTS_GOAL (1000, 2000, ...) starts one HYPE minute. The first
+  // browser to notice writes the start time; the database refuses a second one.
+  function checkMilestone(s) {
+    const m = Math.floor(heartTotal(s) / HEARTS_GOAL);
+    if (m < 1) return;
+    s.hype = s.hype || {};
+    if (s.hype[m]) return;
+    s.hype[m] = Date.now();   // starts instantly for this visitor
+    dbPut('hype/' + s.id + '/' + m, DB_URL ? { '.sv': 'timestamp' } : Date.now()).catch(function () {});
+    if (refreshHypeStates()) renderList();
+  }
+
+  // saving hearts: batched so fast clicking doesn't spam the database
+  function scheduleHeartFlush(s) {
+    clearTimeout(s._flushT);
+    s._flushT = setTimeout(function () { flushHearts(s, false); }, 700);
+  }
+
+  async function flushHearts(s, keepalive) {
+    clearTimeout(s._flushT);
+    s._flushT = null;
+    const n = Number(s.hearts && s.hearts[voterId]) || 0;
+    if (!n) return;
+    try {
+      const res = await dbPut('hearts/' + s.id + '/' + voterId, n, keepalive);
+      if (!res.ok) console.warn('Hearts were not saved. Check your Firebase rules. Status:', res.status);
+    } catch (e) {
+      s._flushT = setTimeout(function () { flushHearts(s, false); }, 4000);
+    }
+  }
+
+  function flushAllHearts() {
+    currentList.forEach(function (s) {
+      if (s._flushT) flushHearts(s, true);
+    });
+  }
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'hidden') flushAllHearts();
+  });
+  window.addEventListener('pagehide', flushAllHearts);
+
+  function clickHeart(s) {
+    s.hearts = s.hearts || {};
+    s.hearts[voterId] = (Number(s.hearts[voterId]) || 0) + 1;
+    scheduleHeartFlush(s);
+    checkMilestone(s);
+    paintHeart(s);
+    if (s._els && s._els.heartBtn.animate) {
+      s._els.heartBtn.animate(
+        [{ transform: 'scale(1)' }, { transform: 'scale(1.3)' }, { transform: 'scale(1)' }],
+        { duration: 180, easing: 'ease-out' }
+      );
+    }
+  }
+
+  // little hearts flying out of a card in HYPE mode
+  const HEART_COLORS = ['#ff2d55', '#ff6b81', '#ff9eb5', '#ffffff', '#ff4d6d'];
+  const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function emitHeart(s) {
+    if (reduceMotion || !s._els || !s._els.card.animate) return;
+    const card = s._els.card;
+    const el = document.createElement('span');
+    el.className = 'hype-heart';
+    el.textContent = '\u2665';
+    el.style.left = (Math.random() * 96) + '%';
+    el.style.top = (25 + Math.random() * 55) + '%';
+    el.style.fontSize = (8 + Math.random() * 13) + 'px';
+    el.style.color = HEART_COLORS[Math.floor(Math.random() * HEART_COLORS.length)];
+    card.appendChild(el);
+
+    const dx = (Math.random() - 0.5) * 140;
+    const dy = -(50 + Math.random() * 120);
+    const rot = (Math.random() - 0.5) * 90;
+    const anim = el.animate([
+      { transform: 'translate(0, 0) scale(0.6) rotate(0deg)', opacity: 0 },
+      { opacity: 1, offset: 0.15 },
+      { transform: 'translate(' + dx + 'px, ' + dy + 'px) scale(1.1) rotate(' + rot + 'deg)', opacity: 0 }
+    ], { duration: 1100 + Math.random() * 1100, easing: 'ease-out' });
+    anim.onfinish = anim.oncancel = function () { el.remove(); };
   }
 
   // Green for upvoted, red for downvoted. The colored part of the card grows
@@ -984,9 +1396,125 @@
     s.pending = false;
   }
 
+  function makeHeartSvg() {
+    const ns = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    const path = document.createElementNS(ns, 'path');
+    path.setAttribute('d', 'M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z');
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke', '#ffffff');
+    path.setAttribute('stroke-width', '1.8');
+    path.setAttribute('stroke-linejoin', 'round');
+    svg.appendChild(path);
+    return { svg: svg, path: path };
+  }
+
+  // builds the card for one submission (once; it is re-used when the list re-sorts)
+  function createCard(s) {
+    const card = document.createElement('div');
+    card.className = 'submission';
+
+    const glow = document.createElement('div');
+    glow.className = 'glow';
+    card.appendChild(glow);
+
+    const tag = document.createElement('div');
+    tag.className = 'hype-tag';
+    tag.textContent = 'HYPE';
+    tag.hidden = true;
+    card.appendChild(tag);
+
+    // left: how many people interacted
+    const stats = document.createElement('div');
+    stats.className = 'stats-col';
+    const votesTxt = document.createElement('div');
+    const commentsTxt = document.createElement('div');
+    commentsTxt.className = 'stat-comments';
+    stats.appendChild(votesTxt);
+    stats.appendChild(commentsTxt);
+
+    // votes
+    const col = document.createElement('div');
+    col.className = 'vote-col';
+    const up = document.createElement('button');
+    up.type = 'button';
+    up.className = 'vote-btn';
+    up.textContent = '\u25B2';
+    up.setAttribute('aria-label', 'upvote');
+    const score = document.createElement('div');
+    score.className = 'vote-score';
+    const down = document.createElement('button');
+    down.type = 'button';
+    down.className = 'vote-btn';
+    down.textContent = '\u25BC';
+    down.setAttribute('aria-label', 'downvote');
+    col.appendChild(up);
+    col.appendChild(score);
+    col.appendChild(down);
+
+    // text
+    const body = document.createElement('div');
+    body.className = 'submission-body';
+
+    const t = document.createElement('div');
+    t.className = 'submission-text';
+    t.textContent = s.text;
+
+    const when = document.createElement('div');
+    when.className = 'submission-time';
+    when.textContent = s.time ? new Date(s.time).toLocaleString() : '';
+
+    body.appendChild(t);
+    body.appendChild(when);
+
+    // right: heart
+    const heartCol = document.createElement('div');
+    heartCol.className = 'heart-col';
+    const heartBtn = document.createElement('button');
+    heartBtn.type = 'button';
+    heartBtn.className = 'heart-btn';
+    heartBtn.setAttribute('aria-label', 'heart');
+    const heart = makeHeartSvg();
+    heartBtn.appendChild(heart.svg);
+    const heartCount = document.createElement('div');
+    heartCount.className = 'heart-count';
+    heartCol.appendChild(heartBtn);
+    heartCol.appendChild(heartCount);
+
+    card.appendChild(stats);
+    card.appendChild(col);
+    card.appendChild(body);
+    card.appendChild(heartCol);
+
+    s._els = {
+      card: card, glow: glow, tag: tag, up: up, down: down, score: score,
+      votesTxt: votesTxt, commentsTxt: commentsTxt,
+      heartBtn: heartBtn, heartPath: heart.path, heartCount: heartCount
+    };
+
+    up.addEventListener('click', function () { castVote(s, 1); });
+    down.addEventListener('click', function () { castVote(s, -1); });
+    heartBtn.addEventListener('click', function () { clickHeart(s); });
+
+    // clicking the votes / heart area never opens the comments
+    col.addEventListener('click', function (e) { e.stopPropagation(); });
+    heartCol.addEventListener('click', function (e) { e.stopPropagation(); });
+
+    // clicking anywhere else on the card opens its comments
+    card.addEventListener('click', function () {
+      const sel = window.getSelection ? window.getSelection().toString() : '';
+      if (sel) return;   // they were selecting text, not opening
+      openComments(s);
+    });
+
+    paintVote(s);
+    paintHype(s);
+  }
+
   function renderList() {
-    subList.textContent = '';
     if (currentList.length === 0) {
+      subList.textContent = '';
       const empty = document.createElement('div');
       empty.id = 'submissions-empty';
       empty.textContent = 'nothing here yet';
@@ -994,60 +1522,51 @@
       return;
     }
 
+    // remember where every card is, so moves can be animated
+    const before = {};
+    currentList.forEach(function (s) {
+      if (s._els && s._els.card.parentNode === subList) {
+        before[s.id] = s._els.card.getBoundingClientRect().top;
+      }
+    });
+
+    // HYPE submissions first (newest HYPE on top), then the chosen sort
     currentList.sort(function (a, b) {
+      if (!!a.hypeActive !== !!b.hypeActive) return a.hypeActive ? -1 : 1;
+      if (a.hypeActive && b.hypeActive) return (b.hypeStartTs || 0) - (a.hypeStartTs || 0);
       if (sortMode === 'top' && b.score !== a.score) return b.score - a.score;
       return (b.time || 0) - (a.time || 0);
     });
 
-    currentList.forEach(function (s) {
-      const card = document.createElement('div');
-      card.className = 'submission';
-
-      const glow = document.createElement('div');
-      glow.className = 'glow';
-      card.appendChild(glow);
-
-      const col = document.createElement('div');
-      col.className = 'vote-col';
-      const up = document.createElement('button');
-      up.type = 'button';
-      up.className = 'vote-btn';
-      up.textContent = '\u25B2';
-      up.setAttribute('aria-label', 'upvote');
-      const score = document.createElement('div');
-      score.className = 'vote-score';
-      const down = document.createElement('button');
-      down.type = 'button';
-      down.className = 'vote-btn';
-      down.textContent = '\u25BC';
-      down.setAttribute('aria-label', 'downvote');
-      col.appendChild(up);
-      col.appendChild(score);
-      col.appendChild(down);
-
-      const body = document.createElement('div');
-      body.className = 'submission-body';
-
-      const t = document.createElement('div');
-      t.className = 'submission-text';
-      t.textContent = s.text;
-
-      const when = document.createElement('div');
-      when.className = 'submission-time';
-      when.textContent = s.time ? new Date(s.time).toLocaleString() : '';
-
-      body.appendChild(t);
-      body.appendChild(when);
-      card.appendChild(col);
-      card.appendChild(body);
-      subList.appendChild(card);
-
-      s._els = { up: up, down: down, score: score, glow: glow };
-      paintVote(s);
-      up.addEventListener('click', function () { castVote(s, 1); });
-      down.addEventListener('click', function () { castVote(s, -1); });
+    Array.prototype.slice.call(subList.children).forEach(function (ch) {
+      if (!ch.classList.contains('submission')) ch.remove();
     });
+    currentList.forEach(function (s) {
+      if (!s._els) createCard(s);
+    });
+
+    const domCards = Array.prototype.slice.call(subList.children);
+    const inOrder = domCards.length === currentList.length && domCards.every(function (c, i) {
+      return c === currentList[i]._els.card;
+    });
+    if (!inOrder) {
+      currentList.forEach(function (s) { subList.appendChild(s._els.card); });
+    }
+
     paintGlow();
+
+    // fly to the new position
+    currentList.forEach(function (s) {
+      const prev = before[s.id];
+      if (prev === undefined || !s._els.card.animate) return;
+      const dy = prev - s._els.card.getBoundingClientRect().top;
+      if (Math.abs(dy) > 2) {
+        s._els.card.animate(
+          [{ transform: 'translateY(' + dy + 'px)' }, { transform: 'translateY(0)' }],
+          { duration: 700, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' }
+        );
+      }
+    });
   }
 
   document.querySelectorAll('.sort-btn').forEach(function (btn) {
@@ -1063,6 +1582,7 @@
   async function showSubmissions() {
     mainView.hidden = true;
     tabZone.hidden = true;
+    commentsView.hidden = true;
     subView.hidden = false;
     window.scrollTo(0, 0);
 
@@ -1078,20 +1598,224 @@
       loading.textContent = "couldn't load submissions";
       return;
     }
+    refreshHypeStates();
     renderList();
   }
 
   function showMain() {
+    flushAllHearts();
     subView.hidden = true;
+    commentsView.hidden = true;
     mainView.hidden = false;
     tabZone.hidden = false;
     window.scrollTo(0, 0);
   }
 
+  /* ---------- Live updates (hearts + HYPE from other people) ---------- */
+  let polling = false;
+
+  async function pollLive() {
+    if (polling || subView.hidden || document.hidden || currentList.length === 0) return;
+    polling = true;
+    try {
+      const res = await Promise.all([dbGet('hearts'), dbGet('hype')]);
+      const heartsAll = res[0] || {};
+      const hypeAll = res[1] || {};
+      const grew = [];
+      currentList.forEach(function (s) {
+        const before = heartTotal(s);
+        const server = heartsAll[s.id] || {};
+        s.hearts = s.hearts || {};
+        Object.keys(server).forEach(function (k) {
+          const v = Number(server[k]) || 0;
+          if (k === voterId) {
+            if (v > (Number(s.hearts[k]) || 0)) s.hearts[k] = v;   // keep my newer local count
+          } else {
+            s.hearts[k] = v;
+          }
+        });
+        s.hype = Object.assign({}, s.hype || {}, hypeAll[s.id] || {});
+        paintHeart(s);
+        if (heartTotal(s) > before) grew.push(s);
+      });
+      if (refreshHypeStates()) renderList();
+      grew.forEach(checkMilestone);   // someone else may have just pushed it over the goal
+    } catch (e) {
+      /* offline or rules not updated: try again next time */
+    }
+    polling = false;
+  }
+
+  setInterval(pollLive, 5000);
+
+  // one small loop: hearts flying out of HYPE cards + noticing when a HYPE minute ends
+  let hypeTickCount = 0;
+  setInterval(function () {
+    if (subView.hidden) return;
+    hypeTickCount++;
+    if (hypeTickCount % 7 === 0 && refreshHypeStates()) renderList();
+    currentList.forEach(function (s) {
+      if (s.hypeActive) {
+        emitHeart(s);
+        emitHeart(s);
+      }
+    });
+  }, 150);
+
+  /* ---------- Comments ---------- */
+  const commentsList = document.getElementById('comments-list');
+  const commentText = document.getElementById('comment-text');
+  const commentBtn = document.getElementById('comment-btn');
+  const commentStatus = document.getElementById('comment-status');
+  const commentBlocked = document.getElementById('comment-blocked-msg');
+  const commentCharCount = document.getElementById('comment-char-count');
+  let activeSub = null;
+  let activeComments = [];
+  let lastComment = 0;
+  let listScroll = 0;
+
+  async function loadComments(id) {
+    const data = await dbGet('comments/' + id);
+    return Object.keys(data || {})
+      .map(function (k) { return Object.assign({ id: k }, data[k]); })
+      .filter(validComment)
+      .sort(function (a, b) { return (b.time || 0) - (a.time || 0); });
+  }
+
+  function renderComments() {
+    commentsList.textContent = '';
+    if (activeComments.length === 0) {
+      const empty = document.createElement('div');
+      empty.id = 'comments-empty';
+      empty.textContent = 'no comments yet, be the first!';
+      commentsList.appendChild(empty);
+      return;
+    }
+    activeComments.forEach(function (c) {
+      const box = document.createElement('div');
+      box.className = 'comment';
+      const t = document.createElement('div');
+      t.className = 'comment-text';
+      t.textContent = c.text;
+      const when = document.createElement('div');
+      when.className = 'comment-time';
+      when.textContent = c.time ? new Date(c.time).toLocaleString() : '';
+      box.appendChild(t);
+      box.appendChild(when);
+      commentsList.appendChild(box);
+    });
+  }
+
+  async function openComments(s) {
+    flushAllHearts();
+    listScroll = window.scrollY;
+    activeSub = s;
+    activeComments = [];
+    subView.hidden = true;
+    commentsView.hidden = false;
+    window.scrollTo(0, 0);
+
+    document.getElementById('comments-submission-text').textContent = s.text;
+    const voters = Object.keys(s.votes || {}).length;
+    document.getElementById('comments-submission-meta').textContent =
+      (s.time ? new Date(s.time).toLocaleString() + ' \u00B7 ' : '') + 'score ' + s.score + ' \u00B7 ' + voters + (voters === 1 ? ' vote' : ' votes');
+    commentText.value = '';
+    commentCharCount.textContent = '0 / ' + COMMENT_MAX;
+    commentBlocked.textContent = '';
+    commentStatus.textContent = '';
+
+    commentsList.textContent = '';
+    const loading = document.createElement('div');
+    loading.id = 'comments-empty';
+    loading.textContent = 'loading...';
+    commentsList.appendChild(loading);
+
+    try {
+      const fresh = await loadComments(s.id);
+      if (activeSub !== s) return;
+      activeComments = fresh;
+      s.commentCount = fresh.length;
+    } catch (e) {
+      if (activeSub === s) loading.textContent = "couldn't load comments";
+      return;
+    }
+    renderComments();
+  }
+
+  function closeComments() {
+    if (activeSub) paintStats(activeSub);
+    activeSub = null;
+    commentsView.hidden = true;
+    subView.hidden = false;
+    if (refreshHypeStates()) renderList();
+    window.scrollTo(0, listScroll);
+  }
+
+  commentText.addEventListener('input', function () {
+    commentCharCount.textContent = commentText.value.length + ' / ' + COMMENT_MAX;
+    commentBlocked.textContent = '';
+  });
+
+  commentBtn.addEventListener('click', async function () {
+    const sub = activeSub;
+    if (!sub) return;
+    const text = commentText.value.trim();
+    if (!text) {
+      commentStatus.textContent = 'write something first!';
+      return;
+    }
+    if (isBlocked(text)) {
+      commentBlocked.textContent = 'fuck you sincerely';
+      commentStatus.textContent = '';
+      return;
+    }
+    const wait = COMMENT_COOLDOWN_MS - (Date.now() - lastComment);
+    if (wait > 0) {
+      commentStatus.textContent = 'slow down, wait ' + formatWait(wait);
+      return;
+    }
+
+    commentBtn.disabled = true;
+    commentStatus.textContent = 'sending...';
+    const entry = { text: text.slice(0, COMMENT_MAX), time: Date.now() };
+    try {
+      const id = await dbPost('comments/' + sub.id, entry);
+      lastComment = Date.now();
+      sub.commentCount = (sub.commentCount || 0) + 1;
+      if (activeSub === sub) {
+        activeComments.unshift(Object.assign({ id: id }, entry));
+        commentText.value = '';
+        commentCharCount.textContent = '0 / ' + COMMENT_MAX;
+        commentStatus.textContent = 'posted!';
+        renderComments();
+      }
+    } catch (e) {
+      commentStatus.textContent = 'something went wrong, try again';
+    }
+    commentBtn.disabled = false;
+  });
+
+  // pick up new comments from other people while the page is open
+  setInterval(async function () {
+    if (commentsView.hidden || !activeSub || document.hidden) return;
+    const sub = activeSub;
+    try {
+      const fresh = await loadComments(sub.id);
+      if (activeSub === sub && fresh.length !== activeComments.length) {
+        activeComments = fresh;
+        sub.commentCount = fresh.length;
+        renderComments();
+      }
+    } catch (e) {}
+  }, 8000);
+
   document.getElementById('submissions-tab').addEventListener('click', showSubmissions);
   document.getElementById('back-btn').addEventListener('click', showMain);
+  document.getElementById('comments-back-btn').addEventListener('click', closeComments);
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && !subView.hidden) showMain();
+    if (e.key !== 'Escape') return;
+    if (!commentsView.hidden) closeComments();
+    else if (!subView.hidden) showMain();
   });
 </script>
 
