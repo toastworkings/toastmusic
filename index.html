@@ -616,6 +616,32 @@
     .submission { gap: 8px; padding: 12px 10px; }
   }
 
+  /* ---------- RAINBOW RIM FLASH (when you jump to a submission from a popup) ---------- */
+  @keyframes rimFlash {
+    0%   { opacity: 0; --angle: 0deg; }
+    12%  { opacity: 1; }
+    72%  { opacity: 1; }
+    100% { opacity: 0; --angle: 360deg; }
+  }
+
+  .submission.flash::after {
+    --angle: 0deg;
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: 9px;
+    padding: 2px;
+    background: conic-gradient(from var(--angle), #ff3b3b, #ffb000, #ffee00, #2bff5a, #00e5ff, #3b6bff, #c43bff, #ff3b9a, #ff3b3b);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    z-index: 6;
+    opacity: 0;
+    animation: rimFlash 1.6s ease-in-out forwards;
+  }
+
   /* ---------- LIVE ACTIVITY POPUPS ---------- */
   #toast-stack {
     position: fixed;
@@ -644,9 +670,14 @@
     font-size: 13px;
     line-height: 1.4;
     overflow-wrap: anywhere;
+    pointer-events: auto;
+    cursor: pointer;
+    transition: background 0.15s ease-out;
     user-select: none;
     -webkit-user-select: none;
   }
+
+  .toast:hover { background: #262626; }
 
   .toast-up      { border-left-color: #22c55e; }
   .toast-down    { border-left-color: #ef4444; }
@@ -1303,7 +1334,7 @@
         changed = true;
         paintHype(s);
         if (active && liveReady && now - start < 15000) {
-          showToast(quoted(s) + ' just hit HYPE mode!', 'hype');
+          showToast(quoted(s) + ' just hit HYPE mode!', 'hype', s);
         }
       }
     });
@@ -1471,8 +1502,8 @@
 
     try {
       await saveVote(s.id, nextVote);
-      if (nextVote === 1) showToast(quoted(s) + ' has been upvoted!', 'up');
-      else if (nextVote === -1) showToast(quoted(s) + ' has been downvoted!', 'down');
+      if (nextVote === 1) showToast(quoted(s) + ' has been upvoted!', 'up', s);
+      else if (nextVote === -1) showToast(quoted(s) + ' has been downvoted!', 'down', s);
     } catch (e) {
       s.votes = previousVotes;
       s.myVote = previousVote;
@@ -1742,8 +1773,8 @@
     return '\u201C' + shortText(s.text) + '\u201D';
   }
 
-  function showToast(text, kind) {
-    toastQueue.push({ text: text, kind: kind });
+  function showToast(text, kind, sub) {
+    toastQueue.push({ text: text, kind: kind, sub: sub });
     if (toastQueue.length > 8) toastQueue.shift();
     drainToasts();
   }
@@ -1751,11 +1782,11 @@
   function drainToasts() {
     while (toastCount < MAX_TOASTS && toastQueue.length) {
       const t = toastQueue.shift();
-      spawnToast(t.text, t.kind);
+      spawnToast(t.text, t.kind, t.sub);
     }
   }
 
-  function spawnToast(text, kind) {
+  function spawnToast(text, kind, sub) {
     const gen = toastGen;
     toastCount++;
     const el = document.createElement('div');
@@ -1771,9 +1802,13 @@
       );
     }
 
-    // ...and fades away at the end of its 5 seconds
-    setTimeout(function () {
-      if (gen !== toastGen) return;
+    // ...and fades away at the end of its 5 seconds (or right away when clicked)
+    let ended = false;
+    let timer = null;
+    function finish() {
+      if (ended || gen !== toastGen) return;
+      ended = true;
+      clearTimeout(timer);
       function done() {
         if (gen !== toastGen) return;
         el.remove();
@@ -1789,7 +1824,38 @@
       } else {
         done();
       }
-    }, TOAST_MS - 400);
+    }
+    timer = setTimeout(finish, TOAST_MS - 400);
+
+    // clicking a popup takes you to the submission it is about
+    el.addEventListener('click', function () {
+      finish();
+      jumpToSubmission(sub);
+    });
+  }
+
+  // flashes a rainbow rim around a card; it fades back to normal by itself
+  function flashCard(s) {
+    if (!s || !s._els) return;
+    const card = s._els.card;
+    clearTimeout(s._flashT);
+    card.classList.remove('flash');
+    void card.offsetWidth;   // restart the animation if it is already running
+    card.classList.add('flash');
+    s._flashT = setTimeout(function () { card.classList.remove('flash'); }, 1700);
+  }
+
+  function jumpToSubmission(s) {
+    if (!s || !s._els || !s._els.card.isConnected) return;
+    if (!commentsView.hidden) closeComments();
+    if (subView.hidden) return;
+    const card = s._els.card;
+    const r = card.getBoundingClientRect();
+    const target = r.top + window.scrollY - (window.innerHeight - r.height) / 2;
+    const dist = Math.abs(target - window.scrollY);
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // wait for the scroll to arrive, then flash
+    setTimeout(function () { flashCard(s); }, dist < 4 ? 0 : Math.min(900, 300 + dist * 0.3));
   }
 
   function clearToasts() {
@@ -1818,7 +1884,7 @@
       if (!s) {                                   // brand new submission
         currentList.push(f);
         needSort = true;
-        showToast('new submission: ' + quoted(f), 'new');
+        showToast('new submission: ' + quoted(f), 'new', f);
         return;
       }
 
@@ -1839,15 +1905,15 @@
         s.votes = merged;
         s.score = calculateScore(merged);
         paintVote(s);
-        if (ups) showToast(ups > 1 ? quoted(s) + ' got ' + ups + ' upvotes!' : quoted(s) + ' has been upvoted!', 'up');
-        if (downs) showToast(downs > 1 ? quoted(s) + ' got ' + downs + ' downvotes!' : quoted(s) + ' has been downvoted!', 'down');
+        if (ups) showToast(ups > 1 ? quoted(s) + ' got ' + ups + ' upvotes!' : quoted(s) + ' has been upvoted!', 'up', s);
+        if (downs) showToast(downs > 1 ? quoted(s) + ' got ' + downs + ' downvotes!' : quoted(s) + ' has been downvoted!', 'down', s);
       }
 
       // comments
       if (f.commentCount > (s.commentCount || 0)) {
         s.commentCount = f.commentCount;
         paintStats(s);
-        showToast('comment added on ' + quoted(s), 'comment');
+        showToast('comment added on ' + quoted(s), 'comment', s);
       }
 
       // hearts + HYPE
@@ -2029,7 +2095,7 @@
       const id = await dbPost('comments/' + sub.id, entry);
       lastComment = Date.now();
       sub.commentCount = (sub.commentCount || 0) + 1;
-      showToast('comment added on ' + quoted(sub), 'comment');
+      showToast('comment added on ' + quoted(sub), 'comment', sub);
       if (activeSub === sub) {
         activeComments.unshift(Object.assign({ id: id }, entry));
         commentText.value = '';
