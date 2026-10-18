@@ -840,31 +840,88 @@
   /* ============================================ */
 
   /* ---------- Sound effects ---------- */
-  const sounds = {};
-  Object.keys(SOUND_FILES).forEach(function (name) {
-    if (name === 'hype') return;
-    const a = new Audio(SOUND_FILES[name]);
-    a.preload = 'auto';
-    sounds[name] = a;
-  });
+  // The short sounds are decoded once into memory (Web Audio), so they start
+  // with almost no delay. If that isn't available, normal audio elements are used.
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  let audioCtx = null;
+  try { if (AudioCtx) audioCtx = new AudioCtx({ latencyHint: 'interactive' }); } catch (e) { audioCtx = null; }
+  const buffers = {};
 
-  // The HYPE sound is ONE audio element, so starting it again restarts it:
-  // two HYPE sounds can never play at once (the first one gets cut).
-  const hypeAudio = new Audio(SOUND_FILES.hype);
-  hypeAudio.preload = 'auto';
-  hypeAudio.volume = SOUND_VOLUME.hype;
-  let hypeStarted = false;
+  function loadBuffer(key, file) {
+    if (!audioCtx || !window.fetch) return;
+    fetch(file)
+      .then(function (r) {
+        if (!r.ok) throw new Error('missing');
+        return r.arrayBuffer();
+      })
+      .then(function (data) {
+        return new Promise(function (resolve, reject) { audioCtx.decodeAudioData(data, resolve, reject); });
+      })
+      .then(function (buf) { buffers[key] = buf; })
+      .catch(function () {});
+  }
 
-  function playSound(name) {
-    const base = sounds[name];
-    if (!base) return;
+  function playBuffer(key, volume) {
+    const buf = buffers[key];
+    if (!audioCtx || !buf) return false;
     try {
-      const a = base.cloneNode();   // a fresh copy, so fast clicks can overlap
-      a.volume = SOUND_VOLUME[name];
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const src = audioCtx.createBufferSource();
+      src.buffer = buf;
+      const gain = audioCtx.createGain();
+      gain.gain.value = volume;
+      src.connect(gain);
+      gain.connect(audioCtx.destination);
+      src.start(0);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // browsers keep audio "suspended" until the visitor has interacted with the page
+  function unlockAudio() {
+    try { if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); } catch (e) {}
+  }
+
+  // fallback (only used if Web Audio isn't available or a sound hasn't loaded yet)
+  const fallbacks = {};
+  function getFallback(file) {
+    if (!fallbacks[file]) {
+      fallbacks[file] = new Audio(file);
+      fallbacks[file].preload = 'auto';
+    }
+    return fallbacks[file];
+  }
+
+  function playFallback(file, volume) {
+    try {
+      const a = getFallback(file).cloneNode();   // a fresh copy, so fast clicks can overlap
+      a.volume = volume;
       const p = a.play();
       if (p && p.catch) p.catch(function () {});
     } catch (e) {}
   }
+
+  function playSound(name) {
+    const volume = SOUND_VOLUME[name];
+    if (playBuffer(name, volume)) return;
+    playFallback(SOUND_FILES[name], volume);
+  }
+
+  Object.keys(SOUND_FILES).forEach(function (name) {
+    if (name === 'hype') return;
+    loadBuffer(name, SOUND_FILES[name]);
+    if (!audioCtx) getFallback(SOUND_FILES[name]);
+  });
+
+  // The HYPE sound is ONE audio element (it is a full minute long, so it streams
+  // instead of being kept in memory). Starting it again restarts it: two HYPE
+  // sounds can never play at once (the first one gets cut).
+  const hypeAudio = new Audio(SOUND_FILES.hype);
+  hypeAudio.preload = 'auto';
+  hypeAudio.volume = SOUND_VOLUME.hype;
+  let hypeStarted = false;
 
   function playHypeSound() {
     hypeStarted = true;
@@ -877,10 +934,11 @@
   }
 
   // Browsers only allow sound after the visitor has interacted with the page.
-  // On the very first click we quietly "warm up" the HYPE audio, so it is
+  // On the very first interaction we quietly "warm up" the HYPE audio, so it is
   // allowed to start by itself later when a HYPE begins.
   let audioPrimed = false;
   function primeAudio() {
+    unlockAudio();
     if (audioPrimed) return;
     audioPrimed = true;
     try {
@@ -905,43 +963,70 @@
     try { return window.getComputedStyle(el).cursor === 'pointer'; } catch (e) { return false; }
   }
 
-  // Every click: submit / comment buttons play CLICK, upvote / downvote play
-  // their own sound (see castVote), hearts play HEART, anything else you can
-  // click plays CLICKABLES, and a click on empty space plays MOUSECLICK.
+  // Which sound a press on this element makes (null = none):
+  // submit / comment buttons = CLICK, upvote / downvote = their own sound,
+  // heart = HEART, anything else you can click = CLICKABLES, empty space = MOUSECLICK.
+  function soundForTarget(t) {
+    if (!t || !t.closest) return null;
+    const btn = t.closest('button');
+    if (btn && btn.disabled) return null;
+    const vb = t.closest('.vote-btn');
+    if (vb) {
+      // taking your vote back is just another clickable
+      const col = vb.closest('.vote-col');
+      const alreadyVoted = !!(col && col.querySelector('.vote-btn.active'));
+      if (alreadyVoted) return 'clickables';
+      return vb.classList.contains('up') ? 'up' : 'down';
+    }
+    if (t.closest('#submit-btn, #comment-btn')) return 'click';
+    if (t.closest('.heart-btn')) return 'heart';
+    return isClickable(t) ? 'clickables' : 'mouse';
+  }
+
+  // Mouse: the sound plays the moment you PRESS the button (not when you let go),
+  // so it feels instant. Touch screens and keyboard presses play on the click instead.
+  let skipNextClick = false;
+
+  document.addEventListener('pointerdown', function (e) {
+    unlockAudio();
+    if (e.pointerType !== 'mouse' || e.button !== 0) return;
+    const name = soundForTarget(e.target);
+    if (name) playSound(name);
+    skipNextClick = true;   // the click that follows this press shouldn't play a second sound
+  }, true);
+
+  function endPress() {
+    setTimeout(function () { skipNextClick = false; }, 80);
+  }
+  document.addEventListener('pointerup', endPress, true);
+  document.addEventListener('pointercancel', endPress, true);
+
   document.addEventListener('click', function (e) {
     primeAudio();
-    const t = e.target;
-    if (!t || !t.closest) return;
-    if (t.closest('.vote-btn')) return;
-    if (t.closest('#submit-btn, #comment-btn')) playSound('click');
-    else if (t.closest('.heart-btn')) playSound('heart');
-    else if (isClickable(t)) playSound('clickables');
-    else playSound('mouse');
+    if (skipNextClick) return;
+    const name = soundForTarget(e.target);
+    if (name) playSound(name);
   }, true);
 
   // Typing: every key you type plays one of the six T sounds (never the same one twice in a row).
-  const typingSounds = TYPING_FILES.map(function (file) {
-    const a = new Audio(file);
-    a.preload = 'auto';
-    return a;
-  });
   let lastTyping = -1;
+  TYPING_FILES.forEach(function (file, i) {
+    loadBuffer('typing' + i, file);
+    if (!audioCtx) getFallback(file);
+  });
 
   function playTypingSound() {
-    const n = typingSounds.length;
+    const n = TYPING_FILES.length;
     if (!n) return;
     let i = Math.floor(Math.random() * n);
     if (n > 1 && i === lastTyping) i = (i + 1 + Math.floor(Math.random() * (n - 1))) % n;
     lastTyping = i;
-    try {
-      const a = typingSounds[i].cloneNode();
-      a.volume = SOUND_VOLUME.typing;
-      const p = a.play();
-      if (p && p.catch) p.catch(function () {});
-    } catch (e) {}
+    if (playBuffer('typing' + i, SOUND_VOLUME.typing)) return;
+    playFallback(TYPING_FILES[i], SOUND_VOLUME.typing);
   }
 
   document.addEventListener('keydown', function (e) {
+    unlockAudio();
     // ignore shortcuts like Ctrl+C (but AltGr, used for Polish letters like ą ę ł, is typing)
     const altGr = e.getModifierState && e.getModifierState('AltGraph');
     if (!altGr && (e.ctrlKey || e.metaKey || e.altKey)) return;
@@ -1609,7 +1694,7 @@
   }
 
   async function castVote(s, value) {
-    if (s.pending) { playSound('clickables'); return; }
+    if (s.pending) return;
 
     const previousVotes = Object.assign({}, s.votes || {});
     const previousVote = previousVotes[voterId] === 1 ? 1 :
@@ -1618,7 +1703,6 @@
     // Current site behavior: clicking either arrow while already voted removes
     // that vote; with no existing vote, add exactly one upvote or downvote.
     const nextVote = previousVote !== 0 ? 0 : value;
-    playSound(nextVote === 1 ? 'up' : (nextVote === -1 ? 'down' : 'clickables'));
 
     s.votes = Object.assign({}, previousVotes);
     if (nextVote === 0) delete s.votes[voterId];
@@ -2208,7 +2292,7 @@
       return;
     }
     if (isBlocked(text)) {
-      commentBlocked.textContent = 'Rule 1: no strong profanity. Rule 2: no skibidilovania';
+      commentBlocked.textContent = 'fuck you sincerely';
       commentStatus.textContent = '';
       return;
     }
