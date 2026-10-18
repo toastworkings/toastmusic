@@ -616,6 +616,44 @@
     .submission { gap: 8px; padding: 12px 10px; }
   }
 
+  /* ---------- LIVE ACTIVITY POPUPS ---------- */
+  #toast-stack {
+    position: fixed;
+    top: 14px;
+    right: 14px;
+    z-index: 30;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    width: 270px;
+    max-width: calc(100vw - 120px);
+    pointer-events: none;
+  }
+
+  .toast {
+    box-sizing: border-box;
+    max-width: 100%;
+    padding: 10px 14px;
+    background: #1a1a1a;
+    color: #ffffff;
+    border: 1px solid #3a3a3a;
+    border-left: 3px solid #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.6);
+    font-size: 13px;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .toast-up      { border-left-color: #22c55e; }
+  .toast-down    { border-left-color: #ef4444; }
+  .toast-comment { border-left-color: #60a5fa; }
+  .toast-new     { border-left-color: #fbbf24; }
+  .toast-hype    { border-left-color: #ff4d6d; }
+
   /* ---------- COMMENTS VIEW ---------- */
   #comments-submission {
     width: 500px;
@@ -729,6 +767,9 @@
   <span id="undo-count">posting in 10s</span>
   <span id="undo-bar"></span>
 </button>
+
+<!-- ====== LIVE ACTIVITY POPUPS ====== -->
+<div id="toast-stack" aria-live="polite"></div>
 
 <!-- ====== HOVER TAB ====== -->
 <div id="tab-zone">
@@ -1185,6 +1226,7 @@
 
   let currentList = [];
   let sortMode = 'top';
+  let liveReady = false;   // true once the list has loaded (so old activity doesn't pop up)
 
   /* ---------- Hearts + HYPE helpers ---------- */
   function heartTotal(s) {
@@ -1260,6 +1302,9 @@
         s.hypeActive = active;
         changed = true;
         paintHype(s);
+        if (active && liveReady && now - start < 15000) {
+          showToast(quoted(s) + ' just hit HYPE mode!', 'hype');
+        }
       }
     });
     return changed;
@@ -1426,6 +1471,8 @@
 
     try {
       await saveVote(s.id, nextVote);
+      if (nextVote === 1) showToast(quoted(s) + ' has been upvoted!', 'up');
+      else if (nextVote === -1) showToast(quoted(s) + ' has been downvoted!', 'down');
     } catch (e) {
       s.votes = previousVotes;
       s.myVote = previousVote;
@@ -1643,6 +1690,7 @@
   });
 
   async function showSubmissions() {
+    liveReady = false;
     mainView.hidden = true;
     tabZone.hidden = true;
     commentsView.hidden = true;
@@ -1663,10 +1711,13 @@
     }
     refreshHypeStates();
     renderList();
+    liveReady = true;
   }
 
   function showMain() {
     flushAllHearts();
+    liveReady = false;
+    clearToasts();
     subView.hidden = true;
     commentsView.hidden = true;
     mainView.hidden = false;
@@ -1674,37 +1725,170 @@
     window.scrollTo(0, 0);
   }
 
-  /* ---------- Live updates (hearts + HYPE from other people) ---------- */
+  /* ---------- Live activity popups ---------- */
+  const toastStack = document.getElementById('toast-stack');
+  const TOAST_MS = 5000;     // how long a popup stays
+  const MAX_TOASTS = 3;      // popups on screen at once (the rest wait their turn)
+  const toastQueue = [];
+  let toastCount = 0;
+  let toastGen = 0;
+
+  function shortText(t) {
+    const clean = String(t).replace(/\s+/g, ' ').trim();
+    return clean.length > 30 ? clean.slice(0, 29) + '\u2026' : clean;
+  }
+
+  function quoted(s) {
+    return '\u201C' + shortText(s.text) + '\u201D';
+  }
+
+  function showToast(text, kind) {
+    toastQueue.push({ text: text, kind: kind });
+    if (toastQueue.length > 8) toastQueue.shift();
+    drainToasts();
+  }
+
+  function drainToasts() {
+    while (toastCount < MAX_TOASTS && toastQueue.length) {
+      const t = toastQueue.shift();
+      spawnToast(t.text, t.kind);
+    }
+  }
+
+  function spawnToast(text, kind) {
+    const gen = toastGen;
+    toastCount++;
+    const el = document.createElement('div');
+    el.className = 'toast toast-' + kind;
+    el.textContent = text;
+    toastStack.insertBefore(el, toastStack.firstChild);
+
+    // drops in from the top edge of the screen
+    if (el.animate) {
+      el.animate(
+        [{ transform: 'translateY(-70px)', opacity: 0 }, { transform: 'translateY(0)', opacity: 1 }],
+        { duration: 380, easing: 'cubic-bezier(0.2, 0.9, 0.3, 1.15)' }
+      );
+    }
+
+    // ...and fades away at the end of its 5 seconds
+    setTimeout(function () {
+      if (gen !== toastGen) return;
+      function done() {
+        if (gen !== toastGen) return;
+        el.remove();
+        toastCount--;
+        drainToasts();
+      }
+      if (el.animate) {
+        const out = el.animate(
+          [{ transform: 'translateY(0)', opacity: 1 }, { transform: 'translateY(-14px)', opacity: 0 }],
+          { duration: 400, easing: 'ease-in', fill: 'forwards' }
+        );
+        out.onfinish = done;
+      } else {
+        done();
+      }
+    }, TOAST_MS - 400);
+  }
+
+  function clearToasts() {
+    toastGen++;
+    toastCount = 0;
+    toastQueue.length = 0;
+    toastStack.textContent = '';
+  }
+
+  /* ---------- Live updates (what other people are doing) ---------- */
   let polling = false;
 
+  // Compares fresh data from the database with what's on screen, updates the
+  // numbers in place and shows a popup for anything new.
+  function mergeLive(fresh) {
+    const byId = {};
+    currentList.forEach(function (s) { byId[s.id] = s; });
+    const freshIds = {};
+    const grew = [];
+    let needSort = false;
+
+    fresh.forEach(function (f) {
+      freshIds[f.id] = true;
+      const s = byId[f.id];
+
+      if (!s) {                                   // brand new submission
+        currentList.push(f);
+        needSort = true;
+        showToast('new submission: ' + quoted(f), 'new');
+        return;
+      }
+
+      // votes from other people (my own vote is handled locally)
+      if (!s.pending) {
+        let ups = 0;
+        let downs = 0;
+        Object.keys(f.votes || {}).forEach(function (k) {
+          if (k === voterId) return;
+          const now = f.votes[k];
+          const was = (s.votes || {})[k] || 0;
+          if (now === 1 && was !== 1) ups++;
+          else if (now === -1 && was !== -1) downs++;
+        });
+        const merged = Object.assign({}, f.votes);
+        if (s.myVote === 0) delete merged[voterId];
+        else merged[voterId] = s.myVote;
+        s.votes = merged;
+        s.score = calculateScore(merged);
+        paintVote(s);
+        if (ups) showToast(ups > 1 ? quoted(s) + ' got ' + ups + ' upvotes!' : quoted(s) + ' has been upvoted!', 'up');
+        if (downs) showToast(downs > 1 ? quoted(s) + ' got ' + downs + ' downvotes!' : quoted(s) + ' has been downvoted!', 'down');
+      }
+
+      // comments
+      if (f.commentCount > (s.commentCount || 0)) {
+        s.commentCount = f.commentCount;
+        paintStats(s);
+        showToast('comment added on ' + quoted(s), 'comment');
+      }
+
+      // hearts + HYPE
+      const before = heartTotal(s);
+      s.hearts = s.hearts || {};
+      Object.keys(f.hearts || {}).forEach(function (k) {
+        const v = Number(f.hearts[k]) || 0;
+        if (k === voterId) {
+          if (v > (Number(s.hearts[k]) || 0)) s.hearts[k] = v;   // keep my newer local count
+        } else {
+          s.hearts[k] = v;
+        }
+      });
+      s.hype = Object.assign({}, s.hype || {}, f.hype || {});
+      paintHeart(s);
+      if (heartTotal(s) > before) grew.push(s);
+    });
+
+    // removed by you in the Firebase console
+    const kept = currentList.filter(function (s) {
+      if (freshIds[s.id]) return true;
+      if (s._els) s._els.card.remove();
+      return false;
+    });
+    const removed = kept.length !== currentList.length;
+    currentList = kept;
+
+    const hypeChanged = refreshHypeStates();
+    if (needSort || hypeChanged || removed) renderList();
+    else paintGlow();
+    grew.forEach(checkMilestone);   // someone else may have just pushed it over the goal
+  }
+
   async function pollLive() {
-    if (polling || subView.hidden || document.hidden || currentList.length === 0) return;
+    if (polling || !liveReady || document.hidden || (subView.hidden && commentsView.hidden)) return;
     polling = true;
     try {
-      const res = await Promise.all([dbGet('hearts'), dbGet('hype')]);
-      const heartsAll = res[0] || {};
-      const hypeAll = res[1] || {};
-      const grew = [];
-      currentList.forEach(function (s) {
-        const before = heartTotal(s);
-        const server = heartsAll[s.id] || {};
-        s.hearts = s.hearts || {};
-        Object.keys(server).forEach(function (k) {
-          const v = Number(server[k]) || 0;
-          if (k === voterId) {
-            if (v > (Number(s.hearts[k]) || 0)) s.hearts[k] = v;   // keep my newer local count
-          } else {
-            s.hearts[k] = v;
-          }
-        });
-        s.hype = Object.assign({}, s.hype || {}, hypeAll[s.id] || {});
-        paintHeart(s);
-        if (heartTotal(s) > before) grew.push(s);
-      });
-      if (refreshHypeStates()) renderList();
-      grew.forEach(checkMilestone);   // someone else may have just pushed it over the goal
+      const fresh = await loadSubmissions();
+      if (!(subView.hidden && commentsView.hidden) && liveReady) mergeLive(fresh);
     } catch (e) {
-      /* offline or rules not updated: try again next time */
+      /* offline: try again next time */
     }
     polling = false;
   }
@@ -1845,6 +2029,7 @@
       const id = await dbPost('comments/' + sub.id, entry);
       lastComment = Date.now();
       sub.commentCount = (sub.commentCount || 0) + 1;
+      showToast('comment added on ' + quoted(sub), 'comment');
       if (activeSub === sub) {
         activeComments.unshift(Object.assign({ id: id }, entry));
         commentText.value = '';
