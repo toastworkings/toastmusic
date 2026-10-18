@@ -832,11 +832,12 @@
     down: 'DOWNVOTE.wav',
     hype: 'HYPESFX.wav',           // plays when HYPE starts
     heart: 'HEART.wav',            // the heart button
+    rainbow: 'RAINBOW.wav',        // clicking a live activity popup
     clickables: 'CLICKABLES.wav',  // any other button, card, link or popup
     mouse: 'MOUSECLICK.wav'        // clicking empty space
   };
   const TYPING_FILES = ['T1.wav', 'T2.wav', 'T3.wav', 'T4.wav', 'T5.wav', 'T6.wav'];   // one is picked at random for each key you type
-  const SOUND_VOLUME = { click: 1, up: 1, down: 1, hype: 1, heart: 1, clickables: 1, mouse: 1, typing: 1 };
+  const SOUND_VOLUME = { click: 1, up: 1, down: 1, hype: 1, heart: 1, rainbow: 1, clickables: 1, mouse: 1, typing: 1 };
   /* ============================================ */
 
   /* ---------- Sound effects ---------- */
@@ -965,7 +966,8 @@
 
   // Which sound a press on this element makes (null = none):
   // submit / comment buttons = CLICK, upvote / downvote = their own sound,
-  // heart = HEART, anything else you can click = CLICKABLES, empty space = MOUSECLICK.
+  // heart = HEART, live activity popups = RAINBOW, anything else you can click = CLICKABLES,
+  // empty space = MOUSECLICK.
   function soundForTarget(t) {
     if (!t || !t.closest) return null;
     const btn = t.closest('button');
@@ -980,6 +982,7 @@
     }
     if (t.closest('#submit-btn, #comment-btn')) return 'click';
     if (t.closest('.heart-btn')) return 'heart';
+    if (t.closest('.toast')) return 'rainbow';
     return isClickable(t) ? 'clickables' : 'mouse';
   }
 
@@ -1449,7 +1452,7 @@
       return;
     }
     if (isBlocked(text)) {
-      blockedMsg.textContent = 'Rule 1: No strong profanity. Rule 2:No skibidilovania';
+      blockedMsg.textContent = 'fuck you sincerely';
       statusEl.textContent = '';
       return;
     }
