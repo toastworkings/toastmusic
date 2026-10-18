@@ -522,6 +522,14 @@
     white-space: nowrap;
   }
 
+  .hype-count {
+    font-size: 8px;
+    line-height: 1.2;
+    color: #cdb54f;
+    opacity: 0.85;
+    white-space: nowrap;
+  }
+
   /* ---------- HYPE MODE ---------- */
   .submission.hype {
     z-index: 5;
@@ -1499,6 +1507,10 @@
     }, 0);
   }
 
+  function hypeCount(s) {
+    return Object.keys(s.hype || {}).filter(function (k) { return Number(s.hype[k]) > 0; }).length;
+  }
+
   function paintHeart(s) {
     const els = s._els;
     if (!els) return;
@@ -1510,6 +1522,9 @@
     els.heartPath.setAttribute('stroke', color);
     els.heartPath.setAttribute('fill', hyped ? color : 'none');
     els.heartCount.textContent = hyped ? 'HYPE!' : progress + ' / ' + HEARTS_GOAL;
+    const hc = hypeCount(s);
+    els.hypeCount.hidden = hc === 0;   // nothing shown until it has had at least one HYPE
+    els.hypeCount.textContent = hc + (hc === 1 ? ' hype' : ' hypes');
   }
 
   function paintStats(s) {
@@ -1839,6 +1854,10 @@
     heartCount.className = 'heart-count';
     heartCol.appendChild(heartBtn);
     heartCol.appendChild(heartCount);
+    const hypeCountEl = document.createElement('div');
+    hypeCountEl.className = 'hype-count';
+    hypeCountEl.hidden = true;
+    heartCol.appendChild(hypeCountEl);
 
     card.appendChild(stats);
     card.appendChild(col);
@@ -1848,7 +1867,7 @@
     s._els = {
       card: card, glow: glow, tag: tag, up: up, down: down, score: score,
       votesTxt: votesTxt, commentsNum: commentsNum,
-      heartBtn: heartBtn, heartPath: heart.path, heartCount: heartCount
+      heartBtn: heartBtn, heartPath: heart.path, heartCount: heartCount, hypeCount: hypeCountEl
     };
 
     up.addEventListener('click', function () { castVote(s, 1); });
