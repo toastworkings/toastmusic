@@ -826,8 +826,17 @@
 
   // Sound effects (keep the files in the same folder as this HTML file).
   // Volume goes from 0 (silent) to 1 (full).
-  const SOUND_FILES = { click: 'CLICK.wav', up: 'UPVOTE.wav', down: 'DOWNVOTE.wav', hype: 'HYPESFX.wav', mouse: 'MOUSECLICK.wav' };
-  const SOUND_VOLUME = { click: 1, up: 1, down: 1, hype: 1, mouse: 1 };
+  const SOUND_FILES = {
+    click: 'CLICK.wav',            // submit / comment buttons
+    up: 'UPVOTE.wav',
+    down: 'DOWNVOTE.wav',
+    hype: 'HYPESFX.wav',           // plays when HYPE starts
+    heart: 'HEART.wav',            // the heart button
+    clickables: 'CLICKABLES.wav',  // any other button, card, link or popup
+    mouse: 'MOUSECLICK.wav'        // clicking empty space
+  };
+  const TYPING_FILES = ['T1.wav', 'T2.wav', 'T3.wav', 'T4.wav', 'T5.wav', 'T6.wav'];   // one is picked at random for each key you type
+  const SOUND_VOLUME = { click: 1, up: 1, down: 1, hype: 1, heart: 1, clickables: 1, mouse: 1, typing: 1 };
   /* ============================================ */
 
   /* ---------- Sound effects ---------- */
@@ -890,14 +899,58 @@
     }
   }
 
+  // Anything you can click: buttons, links, cards, popups, text boxes...
+  function isClickable(el) {
+    if (el.closest('a, button, textarea, input, select, label, [role="button"]')) return true;
+    try { return window.getComputedStyle(el).cursor === 'pointer'; } catch (e) { return false; }
+  }
+
   // Every click: submit / comment buttons play CLICK, upvote / downvote play
-  // their own sound (see castVote), everything else plays MOUSECLICK.
+  // their own sound (see castVote), hearts play HEART, anything else you can
+  // click plays CLICKABLES, and a click on empty space plays MOUSECLICK.
   document.addEventListener('click', function (e) {
     primeAudio();
     const t = e.target;
     if (!t || !t.closest) return;
     if (t.closest('.vote-btn')) return;
-    playSound(t.closest('#submit-btn, #comment-btn') ? 'click' : 'mouse');
+    if (t.closest('#submit-btn, #comment-btn')) playSound('click');
+    else if (t.closest('.heart-btn')) playSound('heart');
+    else if (isClickable(t)) playSound('clickables');
+    else playSound('mouse');
+  }, true);
+
+  // Typing: every key you type plays one of the six T sounds (never the same one twice in a row).
+  const typingSounds = TYPING_FILES.map(function (file) {
+    const a = new Audio(file);
+    a.preload = 'auto';
+    return a;
+  });
+  let lastTyping = -1;
+
+  function playTypingSound() {
+    const n = typingSounds.length;
+    if (!n) return;
+    let i = Math.floor(Math.random() * n);
+    if (n > 1 && i === lastTyping) i = (i + 1 + Math.floor(Math.random() * (n - 1))) % n;
+    lastTyping = i;
+    try {
+      const a = typingSounds[i].cloneNode();
+      a.volume = SOUND_VOLUME.typing;
+      const p = a.play();
+      if (p && p.catch) p.catch(function () {});
+    } catch (e) {}
+  }
+
+  document.addEventListener('keydown', function (e) {
+    // ignore shortcuts like Ctrl+C (but AltGr, used for Polish letters like ą ę ł, is typing)
+    const altGr = e.getModifierState && e.getModifierState('AltGraph');
+    if (!altGr && (e.ctrlKey || e.metaKey || e.altKey)) return;
+    const k = e.key;
+    if (!k) return;
+    // pressing Enter / Space on a focused button is a click, not typing
+    const tag = e.target && e.target.tagName;
+    if ((tag === 'BUTTON' || tag === 'A') && (k === 'Enter' || k === ' ')) return;
+    if (k.length === 1 || k === 'Backspace' || k === 'Delete' || k === 'Enter') playTypingSound();
   }, true);
 
   /* ---------- Existing logo + "who is toast" behavior ---------- */
@@ -1556,7 +1609,7 @@
   }
 
   async function castVote(s, value) {
-    if (s.pending) { playSound('mouse'); return; }
+    if (s.pending) { playSound('clickables'); return; }
 
     const previousVotes = Object.assign({}, s.votes || {});
     const previousVote = previousVotes[voterId] === 1 ? 1 :
@@ -1565,7 +1618,7 @@
     // Current site behavior: clicking either arrow while already voted removes
     // that vote; with no existing vote, add exactly one upvote or downvote.
     const nextVote = previousVote !== 0 ? 0 : value;
-    playSound(nextVote === 1 ? 'up' : (nextVote === -1 ? 'down' : 'mouse'));
+    playSound(nextVote === 1 ? 'up' : (nextVote === -1 ? 'down' : 'clickables'));
 
     s.votes = Object.assign({}, previousVotes);
     if (nextVote === 0) delete s.votes[voterId];
