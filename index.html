@@ -823,7 +823,82 @@
   const COMMENT_MAX = 200;              // max comment length
   const COMMENT_COOLDOWN_MS = 15 * 1000; // wait between comments
   const COMMENTS_ICON_SRC = '';         // leave empty for the built-in icon, or put your own file here, e.g. 'commentsicon.svg'
+
+  // Sound effects (keep the files in the same folder as this HTML file).
+  // Volume goes from 0 (silent) to 1 (full).
+  const SOUND_FILES = { click: 'CLICK.wav', up: 'UPVOTE.wav', down: 'DOWNVOTE.wav', hype: 'HYPESFX.wav', mouse: 'MOUSECLICK.wav' };
+  const SOUND_VOLUME = { click: 1, up: 1, down: 1, hype: 1, mouse: 1 };
   /* ============================================ */
+
+  /* ---------- Sound effects ---------- */
+  const sounds = {};
+  Object.keys(SOUND_FILES).forEach(function (name) {
+    if (name === 'hype') return;
+    const a = new Audio(SOUND_FILES[name]);
+    a.preload = 'auto';
+    sounds[name] = a;
+  });
+
+  // The HYPE sound is ONE audio element, so starting it again restarts it:
+  // two HYPE sounds can never play at once (the first one gets cut).
+  const hypeAudio = new Audio(SOUND_FILES.hype);
+  hypeAudio.preload = 'auto';
+  hypeAudio.volume = SOUND_VOLUME.hype;
+  let hypeStarted = false;
+
+  function playSound(name) {
+    const base = sounds[name];
+    if (!base) return;
+    try {
+      const a = base.cloneNode();   // a fresh copy, so fast clicks can overlap
+      a.volume = SOUND_VOLUME[name];
+      const p = a.play();
+      if (p && p.catch) p.catch(function () {});
+    } catch (e) {}
+  }
+
+  function playHypeSound() {
+    hypeStarted = true;
+    try {
+      hypeAudio.muted = false;
+      hypeAudio.currentTime = 0;
+      const p = hypeAudio.play();
+      if (p && p.catch) p.catch(function () {});
+    } catch (e) {}
+  }
+
+  // Browsers only allow sound after the visitor has interacted with the page.
+  // On the very first click we quietly "warm up" the HYPE audio, so it is
+  // allowed to start by itself later when a HYPE begins.
+  let audioPrimed = false;
+  function primeAudio() {
+    if (audioPrimed) return;
+    audioPrimed = true;
+    try {
+      hypeAudio.muted = true;
+      const p = hypeAudio.play();
+      const reset = function () {
+        if (hypeStarted) return;
+        hypeAudio.pause();
+        hypeAudio.currentTime = 0;
+        hypeAudio.muted = false;
+      };
+      if (p && p.then) p.then(reset).catch(function () { hypeAudio.muted = false; });
+      else reset();
+    } catch (e) {
+      hypeAudio.muted = false;
+    }
+  }
+
+  // Every click: submit / comment buttons play CLICK, upvote / downvote play
+  // their own sound (see castVote), everything else plays MOUSECLICK.
+  document.addEventListener('click', function (e) {
+    primeAudio();
+    const t = e.target;
+    if (!t || !t.closest) return;
+    if (t.closest('.vote-btn')) return;
+    playSound(t.closest('#submit-btn, #comment-btn') ? 'click' : 'mouse');
+  }, true);
 
   /* ---------- Existing logo + "who is toast" behavior ---------- */
   const link = document.getElementById('soundcloud-link');
@@ -1335,6 +1410,7 @@
         paintHype(s);
         if (active && liveReady && now - start < 15000) {
           showToast(quoted(s) + ' just hit HYPE mode!', 'hype', s);
+          playHypeSound();
         }
       }
     });
@@ -1480,7 +1556,7 @@
   }
 
   async function castVote(s, value) {
-    if (s.pending) return;
+    if (s.pending) { playSound('mouse'); return; }
 
     const previousVotes = Object.assign({}, s.votes || {});
     const previousVote = previousVotes[voterId] === 1 ? 1 :
@@ -1489,6 +1565,7 @@
     // Current site behavior: clicking either arrow while already voted removes
     // that vote; with no existing vote, add exactly one upvote or downvote.
     const nextVote = previousVote !== 0 ? 0 : value;
+    playSound(nextVote === 1 ? 'up' : (nextVote === -1 ? 'down' : 'mouse'));
 
     s.votes = Object.assign({}, previousVotes);
     if (nextVote === 0) delete s.votes[voterId];
