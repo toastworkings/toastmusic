@@ -1282,10 +1282,11 @@
     heart: 'HEART.wav',            // the heart button
     rainbow: 'RAINBOW.wav',        // clicking a live activity popup
     clickables: 'CLICKABLES.wav',  // any other button, card, link or popup
-    mouse: 'MOUSECLICK.wav'        // clicking empty space
+    mouse: 'MOUSECLICK.wav',       // clicking empty space
+    sw: 'sw.wav'                   // the submissions list rolling in
   };
   const TYPING_FILES = ['T1.wav', 'T2.wav', 'T3.wav', 'T4.wav', 'T5.wav', 'T6.wav'];   // one is picked at random for each key you type
-  const SOUND_VOLUME = { click: 1, up: 1, down: 1, hype: 1, heart: 1, rainbow: 1, clickables: 1, mouse: 1, typing: 1 };
+  const SOUND_VOLUME = { click: 1, up: 1, down: 1, hype: 1, heart: 1, rainbow: 1, clickables: 1, mouse: 1, sw: 1, typing: 1 };
 
   // ---- Accounts (sign up / log in) ----
   // Paste YOUR keys from Firebase: Project settings > General > Your apps > Web app.
@@ -2476,29 +2477,114 @@
     });
   });
 
+  let rolling = false;
+
   async function showSubmissions() {
+    if (rolling) return;
     liveReady = false;
-    mainView.hidden = true;
     tabZone.hidden = true;
     commentsView.hidden = true;
-    subView.hidden = false;
+    const animate = !reduceMotion && mainView.animate && !mainView.hidden;
+
+    if (!animate) {
+      mainView.hidden = true;
+      subView.hidden = false;
+      window.scrollTo(0, 0);
+      subList.textContent = '';
+      const loading0 = document.createElement('div');
+      loading0.id = 'submissions-empty';
+      loading0.textContent = 'loading...';
+      subList.appendChild(loading0);
+      try { currentList = await loadSubmissions(); }
+      catch (e) { loading0.textContent = "couldn't load submissions"; return; }
+      refreshHypeStates();
+      renderList();
+      liveReady = true;
+      return;
+    }
+
+    rolling = true;
     window.scrollTo(0, 0);
-
-    subList.textContent = '';
-    const loading = document.createElement('div');
-    loading.id = 'submissions-empty';
-    loading.textContent = 'loading...';
-    subList.appendChild(loading);
-
-    try {
-      currentList = await loadSubmissions();
-    } catch (e) {
-      loading.textContent = "couldn't load submissions";
+    try { currentList = await loadSubmissions(); }
+    catch (e) {
+      rolling = false;
+      mainView.hidden = true;
+      subView.hidden = false;
+      subList.textContent = '';
+      const bad = document.createElement('div');
+      bad.id = 'submissions-empty';
+      bad.textContent = "couldn't load submissions";
+      subList.appendChild(bad);
       return;
     }
     refreshHypeStates();
+
+    // Build the list while the main page is still showing.
+    subList.textContent = '';
+    subView.hidden = false;
+    subView.style.position = 'relative';
+    subView.style.zIndex = '2';
     renderList();
-    liveReady = true;
+
+    const H = window.innerHeight;
+    const root = document.documentElement;
+    const oldOverflow = root.style.overflow;
+    root.style.overflow = 'hidden';
+
+    // The main page lifts off the top, pushed up by the list.
+    mainView.style.position = 'fixed';
+    mainView.style.left = '0';
+    mainView.style.right = '0';
+    mainView.style.top = '0';
+    mainView.style.zIndex = '1';
+
+    const EASE = 'cubic-bezier(0.16, 1, 0.3, 1)';   // fast start, long smooth glide
+    const cards = Array.prototype.slice.call(subList.querySelectorAll('.submission'));
+    const others = Array.prototype.slice.call(subView.children).filter(function (el) { return el !== subList; });
+    let longest = 900;
+
+    others.forEach(function (el) {
+      el.animate([{ opacity: 0 }, { opacity: 0, offset: 0.6 }, { opacity: 1 }],
+        { duration: 1000, easing: 'ease-out', fill: 'backwards' });
+    });
+
+    cards.forEach(function (card, i) {
+      // Top card is quickest; each one below takes a little longer.
+      const n = Math.min(i, 12);
+      const dur = 750 + n * 90;
+      longest = Math.max(longest, dur);
+      card.animate(
+        [{ transform: 'translateY(' + (H + 60) + 'px)' }, { transform: 'translateY(0)' }],
+        { duration: dur, easing: EASE, fill: 'backwards' }
+      );
+    });
+
+    const mainAnim = mainView.animate(
+      [{ transform: 'translateY(0)' }, { transform: 'translateY(' + (-(H + 60)) + 'px)' }],
+      { duration: 850, easing: EASE, fill: 'forwards' }
+    );
+
+    playSound('sw');
+
+    const finish = function () {
+      if (!subView.hidden) mainView.hidden = true;
+      mainView.style.position = '';
+      mainView.style.left = '';
+      mainView.style.right = '';
+      mainView.style.top = '';
+      mainView.style.zIndex = '';
+      mainAnim.cancel();
+      subView.style.position = '';
+      subView.style.zIndex = '';
+      root.style.overflow = oldOverflow;
+      window.scrollTo(0, 0);
+      rolling = false;
+      liveReady = true;
+    };
+    mainAnim.finished.then(function () {
+      // wait for the slowest card, then clean up
+      setTimeout(finish, Math.max(0, longest - 850) + 30);
+    }, finish);
   }
 
   function showMain() {
