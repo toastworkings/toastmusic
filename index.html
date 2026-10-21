@@ -1306,7 +1306,7 @@
     rainbow: 'RAINBOW.wav',        // clicking a live activity popup
     clickables: 'CLICKABLES.wav',  // any other button, card, link or popup
     mouse: 'MOUSECLICK.wav',       // clicking empty space
-    sw: 'sw1.wav',                  // the submissions list rolling in
+    sw: 'sw.wav',                  // the submissions list rolling in
     sw1: 'sw1.wav'                 // the list rolling back down (back button)
   };
   const TYPING_FILES = ['T1.wav', 'T2.wav', 'T3.wav', 'T4.wav', 'T5.wav', 'T6.wav'];   // one is picked at random for each key you type
@@ -2560,6 +2560,60 @@
     if (mainView.getAnimations) mainView.getAnimations().forEach(function (a) { a.cancel(); });
   }
 
+  function canRollBack() {
+    return !reduceMotion && !!(mainView.animate && subView.animate);
+  }
+
+  // Slides fromEl down off the screen while toEl arrives from above, as one smooth move.
+  function rollDown(fromEl, toEl, fromY, toY, onDone) {
+    const H = window.innerHeight;
+    const EASE = 'cubic-bezier(0.16, 1, 0.3, 1)';
+    const DUR = 900;
+    rolling = true;
+    rollBack = true;
+    const myToken = ++rollToken;
+
+    // freeze both pages exactly where they are on screen
+    fromEl.style.position = 'fixed';
+    fromEl.style.top = (-fromY) + 'px';
+    fromEl.style.left = '0';
+    fromEl.style.right = '0';
+    fromEl.style.zIndex = '2';
+    toEl.hidden = false;
+    toEl.style.position = 'fixed';
+    toEl.style.top = (-toY) + 'px';
+    toEl.style.left = '0';
+    toEl.style.right = '0';
+    toEl.style.zIndex = '1';
+
+    fromEl.animate(
+      [{ transform: 'translateY(0)' }, { transform: 'translateY(' + H + 'px)' }],
+      { duration: DUR, easing: EASE, fill: 'forwards' }
+    );
+    const inAnim = toEl.animate(
+      [{ transform: 'translateY(' + (-H) + 'px)' }, { transform: 'translateY(0)' }],
+      { duration: DUR, easing: EASE, fill: 'forwards' }
+    );
+    playSound('sw1');
+
+    const done = function () {
+      if (myToken !== rollToken) return;
+      fromEl.hidden = true;
+      [fromEl, toEl].forEach(function (el) {
+        el.getAnimations().forEach(function (an) { an.cancel(); });
+        el.style.position = '';
+        el.style.top = '';
+        el.style.left = '';
+        el.style.right = '';
+        el.style.zIndex = '';
+      });
+      rolling = false;
+      rollBack = false;
+      onDone();
+    };
+    inAnim.finished.then(done, done);
+  }
+
   async function showSubmissions() {
     if (rolling) return;
     liveReady = false;
@@ -2670,7 +2724,6 @@
 
   function showMain() {
     if (rolling && rollBack) return;
-    const wasRolling = rolling;
     rollToken++;
     rolling = false;
     resetRollStyles();
@@ -2678,57 +2731,14 @@
     liveReady = false;
     clearToasts();
 
-    // The submissions page rolls down and the main page slides in from above.
-    if (!reduceMotion && mainView.animate && subView.animate && !subView.hidden && commentsView.hidden && !wasRolling) {
-      const H = window.innerHeight;
-      const EASE = 'cubic-bezier(0.16, 1, 0.3, 1)';
-      const DUR = 900;
-      const y = window.scrollY;
-      rolling = true;
-      rollBack = true;
-      const myToken = ++rollToken;
-
-      // freeze the list exactly where it is on screen
-      subView.style.position = 'fixed';
-      subView.style.top = (-y) + 'px';
-      subView.style.left = '0';
-      subView.style.right = '0';
-      subView.style.zIndex = '2';
-
+    // The page you are on rolls down and the previous one slides in from above.
+    if (canRollBack() && !subView.hidden && commentsView.hidden) {
+      subView.getAnimations({ subtree: true }).forEach(function (an) { an.cancel(); });
       mainView.hidden = false;
-      mainView.style.position = 'fixed';
-      mainView.style.top = '0';
-      mainView.style.left = '0';
-      mainView.style.right = '0';
-      mainView.style.zIndex = '1';
-
-      // the list leaves by the visible height, the main page arrives from just above it
-      subView.animate(
-        [{ transform: 'translateY(0)' }, { transform: 'translateY(' + (H + y) + 'px)' }],
-        { duration: DUR, easing: EASE, fill: 'forwards' }
-      );
-      const inAnim = mainView.animate(
-        [{ transform: 'translateY(' + (-H) + 'px)' }, { transform: 'translateY(0)' }],
-        { duration: DUR, easing: EASE, fill: 'forwards' }
-      );
-      playSound('sw1');
-
-      const done = function () {
-        if (myToken !== rollToken) return;
-        subView.hidden = true;
-        subView.getAnimations().forEach(function (a) { a.cancel(); });
-        subView.style.position = '';
-        subView.style.top = '';
-        subView.style.left = '';
-        subView.style.right = '';
-        subView.style.zIndex = '';
-        resetRollStyles();
+      rollDown(subView, mainView, window.scrollY, 0, function () {
         tabZone.hidden = false;
         window.scrollTo(0, 0);
-        rolling = false;
-        rollBack = false;
-      };
-      inAnim.finished.then(done, done);
+      });
       return;
     }
 
@@ -3041,11 +3051,19 @@
   }
 
   function closeComments() {
+    if (rolling && rollBack) return;
     if (activeSub) paintStats(activeSub);
     activeSub = null;
+    if (refreshHypeStates()) renderList();
+    if (canRollBack() && !commentsView.hidden) {
+      subView.hidden = false;
+      rollDown(commentsView, subView, window.scrollY, listScroll, function () {
+        window.scrollTo(0, listScroll);
+      });
+      return;
+    }
     commentsView.hidden = true;
     subView.hidden = false;
-    if (refreshHypeStates()) renderList();
     window.scrollTo(0, listScroll);
   }
 
