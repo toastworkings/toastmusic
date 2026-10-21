@@ -1976,6 +1976,10 @@
     pendingSend = null;
     textarea.disabled = false;
     submitBtn.disabled = false;
+    // if you're on another page, you still get told how it went
+    if (mainView.hidden && statusEl.textContent && typeof showToast === 'function') {
+      showToast(statusEl.textContent, 'new', null);
+    }
   }
 
   function startSend(text) {
@@ -2013,7 +2017,14 @@
     textarea.disabled = false;
     submitBtn.disabled = false;
     statusEl.textContent = 'not posted, edit it and submit again';
-    textarea.focus();
+    // the popup follows you to every page; clicking it takes you back to the box
+    if (mainView.hidden) {
+      activeSub = null;
+      showMain();
+      setTimeout(function () { try { textarea.focus(); } catch (e) {} }, 950);
+    } else {
+      textarea.focus();
+    }
   });
 
   submitBtn.addEventListener('click', function () {
