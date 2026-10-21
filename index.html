@@ -1598,6 +1598,30 @@
   }
 
   // true when this visitor may like, vote, comment and submit
+  let anonUser = null;
+  let anonPromise = null;
+
+  // hearts (and starting HYPE) don't need an account; any visitor gets a hidden anonymous id
+  function canHeart() {
+    return !AUTH_ENABLED || !!voterId;
+  }
+
+  function ensureHeartIdentity() {
+    if (!AUTH_ENABLED || voterId) return Promise.resolve(true);
+    if (!fbAuth) return Promise.resolve(false);
+    if (!anonPromise) {
+      anonPromise = fbAuth.signInAnonymously().then(function (cred) {
+        anonUser = cred.user;
+        if (!currentUser) voterId = cred.user.uid;
+        return true;
+      }).catch(function (e) {
+        console.warn("Guest hearts need Anonymous sign-in turned on in Firebase (Authentication > Sign-in method).", e);
+        return false;
+      }).then(function (ok) { anonPromise = null; return ok; });
+    }
+    return anonPromise;
+  }
+
   function canEngage() {
     return !AUTH_ENABLED || !!(currentUser && currentUser.emailVerified);
   }
@@ -2116,7 +2140,7 @@
   // Every full HEARTS_GOAL (1000, 2000, ...) starts one HYPE minute. The first
   // browser to notice writes the start time; the database refuses a second one.
   function checkMilestone(s) {
-    if (!canEngage()) return;   // only signed-in visitors can start a HYPE
+    if (!canHeart()) return;
     const m = Math.floor(heartTotal(s) / HEARTS_GOAL);
     if (m < 1) return;
     s.hype = s.hype || {};
@@ -2135,7 +2159,7 @@
   async function flushHearts(s, keepalive) {
     clearTimeout(s._flushT);
     s._flushT = null;
-    if (!voterId || !canEngage()) return;
+    if (!canHeart()) return;
     const n = Number(s.hearts && s.hearts[voterId]) || 0;
     if (!n) return;
     try {
@@ -2158,7 +2182,13 @@
   window.addEventListener('pagehide', flushAllHearts);
 
   function clickHeart(s) {
-    if (!requireAuth('log in or sign up to like and comment')) return;
+    if (AUTH_ENABLED && !voterId) {
+      ensureHeartIdentity().then(function (ok) {
+        if (ok) clickHeart(s);
+        else requireAuth('log in or sign up to like and comment');
+      });
+      return;
+    }
     s.hearts = s.hearts || {};
     s.hearts[voterId] = (Number(s.hearts[voterId]) || 0) + 1;
     scheduleHeartFlush(s);
@@ -3291,8 +3321,10 @@
   }
 
   function handleUser(user) {
-    currentUser = user || null;
-    if (AUTH_ENABLED) voterId = currentUser ? currentUser.uid : null;
+    // guests who only click hearts get a hidden anonymous id; they still count as "not logged in"
+    anonUser = user && user.isAnonymous ? user : null;
+    currentUser = user && !user.isAnonymous ? user : null;
+    if (AUTH_ENABLED) voterId = user ? user.uid : null;
     refreshMyState();
     updateAuthUI();
     if (!authModal.hidden && canEngage()) {
