@@ -2554,7 +2554,7 @@
     mainView.style.zIndex = '';
     subView.style.position = '';
     subView.style.zIndex = '';
-    document.documentElement.style.overflow = '';
+    subView.style.overflow = '';
     if (mainView.getAnimations) mainView.getAnimations().forEach(function (a) { a.cancel(); });
   }
 
@@ -2607,9 +2607,8 @@
     renderList();
 
     const H = window.innerHeight;
-    const root = document.documentElement;
-    const oldOverflow = root.style.overflow;
-    root.style.overflow = 'hidden';
+    // cards start below the screen: clip them to the list box instead of hiding the scrollbar
+    subView.style.overflow = 'clip';
 
     // The main page lifts off the top, pushed up by the list.
     mainView.style.position = 'fixed';
@@ -2657,7 +2656,7 @@
       mainAnim.cancel();
       subView.style.position = '';
       subView.style.zIndex = '';
-      root.style.overflow = oldOverflow;
+      subView.style.overflow = '';
       window.scrollTo(0, 0);
       rolling = false;
       liveReady = true;
