@@ -957,6 +957,23 @@
   .review-actions button:disabled { opacity: 0.5; cursor: default; }
   .review-empty { font-size: 13px; color: #777777; }
 
+  #review-reject-all { margin-bottom: 12px; }
+  #review-reject-all:hover { border-color: #ef4444; color: #ef4444; }
+
+  .review-kind {
+    display: inline-block;
+    margin-bottom: 6px;
+    padding: 1px 8px;
+    border: 1px solid #333333;
+    border-radius: 8px;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #b3b3b3;
+  }
+
+  .review-kind.comment { color: #60a5fa; border-color: #60a5fa; }
+
   /* ---------- COMMENT SIGN-IN NOTE ---------- */
   #comment-login-note {
     width: 500px;
@@ -1134,7 +1151,7 @@
   </div>
   <div id="comment-box">
     <div id="comment-blocked-msg"></div>
-    <textarea id="comment-text" maxlength="200" placeholder="add your comment..."></textarea>
+    <textarea id="comment-text" maxlength="200" placeholder="add your comment (it shows up once approved)..."></textarea>
     <div id="comment-row">
       <span id="comment-char-count">0 / 200</span>
       <button id="comment-btn" type="button">Comment</button>
@@ -1193,6 +1210,7 @@
   <div class="modal-card review-card">
     <button id="review-close" class="modal-close" type="button" aria-label="close">&times;</button>
     <div class="modal-title">waiting for approval</div>
+    <button id="review-reject-all" class="acct-btn" type="button" hidden>Reject all</button>
     <div id="review-list"></div>
   </div>
 </div>
@@ -1639,13 +1657,11 @@
     return 'd' + (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
   }
 
-  // Returns 'pending' (waiting for your approval) or 'live'.
+  // Returns 'pending' (waiting for your approval) or 'live'. No account is needed to submit.
   async function saveSubmission(text) {
     const norm = normalizeText(text);
     const entry = { text: text, time: Date.now() };
     if (DB_URL) {
-      if (!currentUser) throw new Error('login');
-
       // already approved and live?
       const check = await fetch(dbBase + '/submissions.json');
       if (check.ok) {
@@ -1663,15 +1679,14 @@
         return 'live';
       }
 
-      // everyone else: one idea at a time waits for approval
-      const mine = await dbGet('pending/' + currentUser.uid, true).catch(function () { return null; });
-      if (mine) throw new Error('pending');
-      const res = await dbPut('pending/' + currentUser.uid, {
-        text: text,
-        time: entry.time,
-        uid: currentUser.uid,
-        by: currentUser.email || currentUser.displayName || ''
-      });
+      // everyone else: it waits in the queue until you approve it.
+      // The key is a hash of the text, so the same idea can't be queued twice.
+      const body = { text: text, time: entry.time };
+      if (currentUser && (currentUser.email || currentUser.displayName)) {
+        body.by = String(currentUser.email || currentUser.displayName).slice(0, 100);
+      }
+      const res = await dbPut('pending/' + hashText(norm), body);
+      if (res.status === 401 || res.status === 403) throw new Error('duplicate');   // already waiting in the queue
       if (!res.ok) throw new Error('Save failed');
       return 'pending';
     }
@@ -1713,10 +1728,13 @@
     try { localStorage.setItem(LOCAL_DB_KEY, JSON.stringify(tree)); } catch (e) {}
   }
 
-  async function dbGet(path, withAuth) {
+  async function dbGet(path, withAuth, query) {
     if (DB_URL) {
       const token = withAuth ? await getToken() : null;
-      const res = await fetch(dbBase + '/' + path + '.json' + qs(token));
+      const params = [];
+      if (query) params.push(query);
+      if (token) params.push('auth=' + encodeURIComponent(token));
+      const res = await fetch(dbBase + '/' + path + '.json' + (params.length ? '?' + params.join('&') : ''));
       if (!res.ok) throw new Error('Load failed');
       return res.json();
     }
@@ -1888,11 +1906,7 @@
     } catch (e) {
       statusEl.textContent = e.message === 'duplicate'
         ? 'someone already submitted that!'
-        : e.message === 'pending'
-          ? 'you already have an idea waiting for approval'
-          : e.message === 'login'
-            ? 'log in first to submit'
-            : 'something went wrong, try again';
+        : 'something went wrong, try again';
     }
     pendingSend = null;
     textarea.disabled = false;
@@ -1949,7 +1963,6 @@
       statusEl.textContent = '';
       return;
     }
-    if (!requireAuth('log in or sign up to submit your idea')) return;
     const wait = COOLDOWN_MS - (Date.now() - getLastSubmit());
     if (wait > 0) {
       statusEl.textContent = 'slow down, you can submit again in ' + formatWait(wait);
@@ -2819,19 +2832,43 @@
     commentStatus.textContent = 'sending...';
     const entry = { text: text.slice(0, COMMENT_MAX), time: Date.now(), uid: currentUser ? currentUser.uid : null };
     try {
-      const id = await dbPost('comments/' + sub.id, entry);
-      lastComment = Date.now();
-      sub.commentCount = (sub.commentCount || 0) + 1;
-      showToast('comment added on ' + quoted(sub), 'comment', sub);
-      if (activeSub === sub) {
-        activeComments.unshift(Object.assign({ id: id }, entry));
+      if (DB_URL && !isAdmin()) {
+        // everyone else: the comment waits for your approval
+        // (one waiting comment per person per submission)
+        const slot = 'pendingComments/' + currentUser.uid + '/' + sub.id;
+        const mine = await dbGet(slot, true).catch(function () { return null; });
+        if (mine) throw new Error('pending');
+        const res = await dbPut(slot, {
+          text: entry.text,
+          time: entry.time,
+          uid: currentUser.uid,
+          by: String(currentUser.email || currentUser.displayName || '').slice(0, 100),
+          on: shortText(sub.text)
+        });
+        if (!res.ok) throw new Error('Save failed');
+        lastComment = Date.now();
         commentText.value = '';
         commentCharCount.textContent = '0 / ' + COMMENT_MAX;
-        commentStatus.textContent = 'posted!';
-        renderComments();
+        commentStatus.textContent = 'sent! it will show up once it gets approved';
+        showToast('comment sent for approval', 'comment', sub);
+      } else {
+        // you (or local test mode): goes live straight away
+        const id = await dbPost('comments/' + sub.id, entry);
+        lastComment = Date.now();
+        sub.commentCount = (sub.commentCount || 0) + 1;
+        showToast('comment added on ' + quoted(sub), 'comment', sub);
+        if (activeSub === sub) {
+          activeComments.unshift(Object.assign({ id: id }, entry));
+          commentText.value = '';
+          commentCharCount.textContent = '0 / ' + COMMENT_MAX;
+          commentStatus.textContent = 'posted!';
+          renderComments();
+        }
       }
     } catch (e) {
-      commentStatus.textContent = 'something went wrong, try again';
+      commentStatus.textContent = e.message === 'pending'
+        ? 'you already have a comment waiting for approval here'
+        : 'something went wrong, try again';
     }
     commentBtn.disabled = false;
   });
@@ -3104,22 +3141,38 @@
     openAuth('login');
   });
 
-  /* ---------- Review: approve submissions (only you) ---------- */
+  /* ---------- Review: approve submissions and comments (only you) ---------- */
   const reviewModal = document.getElementById('review-modal');
   const reviewList = document.getElementById('review-list');
+  const rejectAllBtn = document.getElementById('review-reject-all');
+  const REVIEW_LIMIT = 100;   // how many waiting items are loaded at once (keeps a spam flood from freezing the page)
   let pendingCount = 0;
+  let pendingItems = [];
 
   function paintReviewCount() {
-    reviewCount.textContent = pendingCount ? '(' + pendingCount + ')' : '';
+    reviewCount.textContent = pendingCount
+      ? '(' + pendingCount + (pendingCount >= REVIEW_LIMIT ? '+' : '') + ')'
+      : '';
     reviewBtn.classList.toggle('has-pending', pendingCount > 0);
   }
 
+  // everything waiting: submissions and comments, oldest first
   async function loadPending() {
-    const data = await dbGet('pending', true);
-    return Object.keys(data || {})
-      .map(function (uid) { return Object.assign({ uid: uid }, data[uid]); })
-      .filter(function (p) { return p && typeof p.text === 'string'; })
-      .sort(function (a, b) { return (a.time || 0) - (b.time || 0); });
+    const q = 'orderBy=%22%24key%22&limitToFirst=' + REVIEW_LIMIT;
+    const res = await Promise.all([dbGet('pending', true, q), dbGet('pendingComments', true, q)]);
+    const items = [];
+    Object.keys(res[0] || {}).forEach(function (id) {
+      const p = res[0][id];
+      if (p && typeof p.text === 'string') items.push(Object.assign({ kind: 'submission', id: id }, p));
+    });
+    Object.keys(res[1] || {}).forEach(function (uid) {
+      const per = res[1][uid] || {};
+      Object.keys(per).forEach(function (sid) {
+        const c = per[sid];
+        if (c && typeof c.text === 'string') items.push(Object.assign({ kind: 'comment', uid: uid, sid: sid }, c));
+      });
+    });
+    return items.sort(function (a, b) { return (a.time || 0) - (b.time || 0); });
   }
 
   async function refreshPendingCount() {
@@ -3134,29 +3187,39 @@
     paintReviewCount();
   }
 
+  function pendingPath(p) {
+    return p.kind === 'comment' ? 'pendingComments/' + p.uid + '/' + p.sid : 'pending/' + p.id;
+  }
+
   async function approvePending(p) {
-    const id = hashText(normalizeText(p.text));
-    // if the same idea is already live, just clear it from the queue
-    let existing = null;
-    try {
-      const r = await fetch(dbBase + '/submissions/' + id + '.json');
-      existing = r.ok ? await r.json() : null;
-    } catch (e) {}
-    if (!existing) {
-      const res = await dbPut('submissions/' + id, { text: p.text, time: Date.now(), submitted: p.time || Date.now() });
-      if (!res.ok) throw new Error('approve failed');
+    if (p.kind === 'comment') {
+      await dbPost('comments/' + p.sid, { text: p.text, time: Date.now(), submitted: p.time || Date.now(), uid: p.uid });
+    } else {
+      const id = hashText(normalizeText(p.text));
+      // if the same idea is already live, just clear it from the queue
+      let existing = null;
+      try {
+        const r = await fetch(dbBase + '/submissions/' + id + '.json');
+        existing = r.ok ? await r.json() : null;
+      } catch (e) {}
+      if (!existing) {
+        const res = await dbPut('submissions/' + id, { text: p.text, time: Date.now(), submitted: p.time || Date.now() });
+        if (!res.ok) throw new Error('approve failed');
+      }
     }
-    const del = await dbDelete('pending/' + p.uid);
+    const del = await dbDelete(pendingPath(p));
     if (!del.ok) throw new Error('delete failed');
   }
 
   async function rejectPending(p) {
-    const del = await dbDelete('pending/' + p.uid);
+    const del = await dbDelete(pendingPath(p));
     if (!del.ok) throw new Error('delete failed');
   }
 
   function renderReview(items) {
+    pendingItems = items;
     reviewList.textContent = '';
+    rejectAllBtn.hidden = items.length === 0;
     if (items.length === 0) {
       const empty = document.createElement('div');
       empty.className = 'review-empty';
@@ -3167,6 +3230,9 @@
     items.forEach(function (p) {
       const box = document.createElement('div');
       box.className = 'review-item';
+      const kind = document.createElement('div');
+      kind.className = 'review-kind' + (p.kind === 'comment' ? ' comment' : '');
+      kind.textContent = p.kind === 'comment' ? 'comment on \u201C' + (p.on || '...') + '\u201D' : 'submission';
       const t = document.createElement('div');
       t.className = 'review-text';
       t.textContent = p.text;
@@ -3186,6 +3252,7 @@
       reject.textContent = 'Reject';
       row.appendChild(approve);
       row.appendChild(reject);
+      box.appendChild(kind);
       box.appendChild(t);
       box.appendChild(meta);
       box.appendChild(row);
@@ -3199,6 +3266,7 @@
             if (doApprove) await approvePending(p);
             else await rejectPending(p);
             box.remove();
+            pendingItems = pendingItems.filter(function (x) { return x !== p; });
             pendingCount = Math.max(0, pendingCount - 1);
             paintReviewCount();
             if (!reviewList.children.length) renderReview([]);
@@ -3214,8 +3282,7 @@
     });
   }
 
-  reviewBtn.addEventListener('click', async function () {
-    reviewModal.hidden = false;
+  async function showReview() {
     reviewList.textContent = 'loading...';
     try {
       const items = await loadPending();
@@ -3223,9 +3290,44 @@
       paintReviewCount();
       renderReview(items);
     } catch (e) {
+      rejectAllBtn.hidden = true;
       reviewList.textContent = "couldn't load, check that your Firebase rules are published";
     }
+  }
+
+  reviewBtn.addEventListener('click', function () {
+    reviewModal.hidden = false;
+    showReview();
   });
+
+  // "Reject all" needs a second click to confirm. It clears everything currently listed (handy after a spam flood).
+  let rejectArmed = false;
+  let rejectTimer = null;
+  rejectAllBtn.addEventListener('click', async function () {
+    if (!rejectArmed) {
+      rejectArmed = true;
+      rejectAllBtn.textContent = 'sure? click again';
+      rejectTimer = setTimeout(function () {
+        rejectArmed = false;
+        rejectAllBtn.textContent = 'Reject all';
+      }, 4000);
+      return;
+    }
+    clearTimeout(rejectTimer);
+    rejectArmed = false;
+    rejectAllBtn.disabled = true;
+    rejectAllBtn.textContent = 'working...';
+    const items = pendingItems.slice();
+    for (let i = 0; i < items.length; i += 10) {
+      await Promise.all(items.slice(i, i + 10).map(function (p) {
+        return rejectPending(p).catch(function () {});
+      }));
+    }
+    rejectAllBtn.disabled = false;
+    rejectAllBtn.textContent = 'Reject all';
+    showReview();
+  });
+
   document.getElementById('review-close').addEventListener('click', function () { reviewModal.hidden = true; });
   reviewModal.addEventListener('click', function (e) { if (e.target === reviewModal) reviewModal.hidden = true; });
 
