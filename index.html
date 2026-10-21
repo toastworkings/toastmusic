@@ -1306,10 +1306,11 @@
     rainbow: 'RAINBOW.wav',        // clicking a live activity popup
     clickables: 'CLICKABLES.wav',  // any other button, card, link or popup
     mouse: 'MOUSECLICK.wav',       // clicking empty space
-    sw: 'sw.wav'                   // the submissions list rolling in
+    sw: 'sw1.wav',                  // the submissions list rolling in
+    sw1: 'sw1.wav'                 // the list rolling back down (back button)
   };
   const TYPING_FILES = ['T1.wav', 'T2.wav', 'T3.wav', 'T4.wav', 'T5.wav', 'T6.wav'];   // one is picked at random for each key you type
-  const SOUND_VOLUME = { click: 1, up: 1, down: 1, hype: 1, heart: 1, rainbow: 1, clickables: 1, mouse: 1, sw: 1, typing: 1 };
+  const SOUND_VOLUME = { click: 1, up: 1, down: 1, hype: 1, heart: 1, rainbow: 1, clickables: 1, mouse: 1, sw: 1, sw1: 1, typing: 1 };
 
   // ---- Accounts (sign up / log in) ----
   // Paste YOUR keys from Firebase: Project settings > General > Your apps > Web app.
@@ -2545,6 +2546,7 @@
 
   let rolling = false;
   let rollToken = 0;
+  let rollBack = false;
 
   function resetRollStyles() {
     mainView.style.position = '';
@@ -2667,12 +2669,69 @@
   }
 
   function showMain() {
+    if (rolling && rollBack) return;
+    const wasRolling = rolling;
     rollToken++;
     rolling = false;
     resetRollStyles();
     flushAllHearts();
     liveReady = false;
     clearToasts();
+
+    // The submissions page rolls down and the main page slides in from above.
+    if (!reduceMotion && mainView.animate && subView.animate && !subView.hidden && commentsView.hidden && !wasRolling) {
+      const H = window.innerHeight;
+      const EASE = 'cubic-bezier(0.16, 1, 0.3, 1)';
+      const DUR = 900;
+      const y = window.scrollY;
+      rolling = true;
+      rollBack = true;
+      const myToken = ++rollToken;
+
+      // freeze the list exactly where it is on screen
+      subView.style.position = 'fixed';
+      subView.style.top = (-y) + 'px';
+      subView.style.left = '0';
+      subView.style.right = '0';
+      subView.style.zIndex = '2';
+
+      mainView.hidden = false;
+      mainView.style.position = 'fixed';
+      mainView.style.top = '0';
+      mainView.style.left = '0';
+      mainView.style.right = '0';
+      mainView.style.zIndex = '1';
+
+      // the list leaves by the visible height, the main page arrives from just above it
+      subView.animate(
+        [{ transform: 'translateY(0)' }, { transform: 'translateY(' + (H + y) + 'px)' }],
+        { duration: DUR, easing: EASE, fill: 'forwards' }
+      );
+      const inAnim = mainView.animate(
+        [{ transform: 'translateY(' + (-H) + 'px)' }, { transform: 'translateY(0)' }],
+        { duration: DUR, easing: EASE, fill: 'forwards' }
+      );
+      playSound('sw1');
+
+      const done = function () {
+        if (myToken !== rollToken) return;
+        subView.hidden = true;
+        subView.getAnimations().forEach(function (a) { a.cancel(); });
+        subView.style.position = '';
+        subView.style.top = '';
+        subView.style.left = '';
+        subView.style.right = '';
+        subView.style.zIndex = '';
+        resetRollStyles();
+        tabZone.hidden = false;
+        window.scrollTo(0, 0);
+        rolling = false;
+        rollBack = false;
+      };
+      inAnim.finished.then(done, done);
+      return;
+    }
+
     subView.hidden = true;
     commentsView.hidden = true;
     mainView.hidden = false;
@@ -2944,6 +3003,7 @@
   }
 
   async function openComments(s) {
+    if (rolling && rollBack) return;
     if (rolling) { rollToken++; rolling = false; resetRollStyles(); mainView.hidden = true; liveReady = true; }
     flushAllHearts();
     listScroll = window.scrollY;
