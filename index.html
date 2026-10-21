@@ -1039,7 +1039,7 @@
     line-height: 1;
     cursor: pointer;
     box-shadow: 0 0 14px rgba(255, 193, 7, 0.25);
-    transition: background 0.15s ease-out, transform 0.15s ease-out;
+    transition: background 0.15s ease-out, transform 0.15s ease-out, opacity 0.4s ease;
   }
 
   #notice-btn:hover { background: #262626; transform: scale(1.08); }
@@ -1058,7 +1058,32 @@
     pointer-events: none;
     user-select: none;
     -webkit-user-select: none;
+    opacity: 0;
+    transition: opacity 0.35s ease;
   }
+
+  /* the line above the "!" only shows while the mouse is on the right side of the screen */
+  #notice.near #notice-label,
+  #notice:hover #notice-label,
+  #notice.open #notice-label,
+  #notice.touch #notice-label { opacity: 1; }
+
+  /* until it has been hovered once, the "!" pulses like an alarm */
+  #notice.pulsing #notice-btn { animation: noticePulse 2.4s ease-in-out infinite; }
+  @keyframes noticePulse {
+    0%, 100% { opacity: 0; }
+    50% { opacity: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #notice.pulsing #notice-btn { animation: none; }
+  }
+
+  /* after that, it is only visible while the mouse is on the right side */
+  #notice.seen:not(.touch) #notice-btn { opacity: 0; }
+  #notice.seen:not(.touch).near #notice-btn,
+  #notice.seen:not(.touch):hover #notice-btn,
+  #notice.seen:not(.touch).open #notice-btn,
+  #notice.seen:not(.touch) #notice-btn:focus-visible { opacity: 1; }
 
   #notice-panel {
     position: absolute;
@@ -3650,6 +3675,33 @@
   /* ---------- Notice ("!" on the right) ---------- */
   const notice = document.getElementById('notice');
   const noticeBtn = document.getElementById('notice-btn');
+  const canHover = !!(window.matchMedia && window.matchMedia('(hover: hover)').matches);
+  let noticeSeen = false;
+  try { noticeSeen = localStorage.getItem('toast_notice_seen') === '1'; } catch (e) {}
+  if (!canHover) notice.classList.add('touch');
+  notice.classList.add(noticeSeen ? 'seen' : 'pulsing');
+
+  // hovering the "!" itself stops the pulsing for good
+  function stopPulse() {
+    if (!notice.classList.contains('pulsing')) return;
+    const now = parseFloat(getComputedStyle(noticeBtn).opacity);
+    noticeBtn.style.opacity = isNaN(now) ? '' : String(now);   // keep where it is, no jump
+    notice.classList.remove('pulsing');
+    notice.classList.add('seen');
+    void noticeBtn.offsetWidth;
+    noticeBtn.style.opacity = '';                               // then ease to its new state
+    try { localStorage.setItem('toast_notice_seen', '1'); } catch (e) {}
+  }
+  noticeBtn.addEventListener('mouseenter', stopPulse);
+  noticeBtn.addEventListener('click', stopPulse);
+  noticeBtn.addEventListener('focus', stopPulse);
+
+  // is the mouse on the right side of the screen?
+  document.addEventListener('mousemove', function (e) {
+    const zone = Math.max(180, window.innerWidth * 0.2);
+    notice.classList.toggle('near', e.clientX >= window.innerWidth - zone);
+  });
+  document.documentElement.addEventListener('mouseleave', function () { notice.classList.remove('near'); });
   function setNoticeOpen(open) {
     notice.classList.toggle('open', open);
     noticeBtn.setAttribute('aria-expanded', String(open));
