@@ -2596,9 +2596,16 @@
     );
     playSound('sw1');
 
+    // the back button fades out right away so it doesn't streak down the screen
+    const backBtns = Array.prototype.slice.call(fromEl.querySelectorAll('.back-btn'));
+    backBtns.forEach(function (b) {
+      b.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 150, easing: 'ease-out', fill: 'forwards' });
+    });
+
     const done = function () {
       if (myToken !== rollToken) return;
       fromEl.hidden = true;
+      backBtns.forEach(function (b) { b.getAnimations().forEach(function (an) { an.cancel(); }); });
       [fromEl, toEl].forEach(function (el) {
         el.getAnimations().forEach(function (an) { an.cancel(); });
         el.style.position = '';
