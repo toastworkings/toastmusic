@@ -360,24 +360,17 @@
     pointer-events: auto;
   }
   #release-panel {
-    --angle: 0deg;
     position: absolute;
     left: 50%;
     bottom: 0;
     width: min(600px, calc(100vw - 20px));
     box-sizing: border-box;
-    transform: translateX(-50%) translateY(calc(100% - 28px));
-    padding: 6px 14px 14px;
+    transform: translateX(-50%) translateY(calc(100% - 52px));
+    padding: 22px 14px 14px;
     color: #ffffff;
-    border: 2px solid transparent;
-    border-bottom: none;
-    border-radius: 14px 14px 0 0;
-    background-image: linear-gradient(#1c1c1c, #1c1c1c), linear-gradient(#555555, #555555);
-    background-origin: border-box;
-    background-clip: padding-box, border-box;
-    box-shadow: 0 -2px 14px rgba(255, 255, 255, 0.1);
+    background: linear-gradient(to top, #000000 78%, rgba(0, 0, 0, 0));
     font-family: 'Poppins', sans-serif;
-    transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
     pointer-events: auto;
     user-select: none;
     -webkit-user-select: none;
@@ -387,15 +380,11 @@
   #release-panel.playing,
   #release-panel:focus-within {
     transform: translateX(-50%) translateY(0);
-    background-image:
-      linear-gradient(#1c1c1c, #1c1c1c),
-      conic-gradient(from var(--angle), #ff3b3b, #ffb000, #ffee00, #2bff5a, #00e5ff, #3b6bff, #c43bff, #ff3b9a, #ff3b3b);
-    animation: tabSpin 2.5s linear infinite;
   }
   #release-label {
     display: block;
     width: 100%;
-    height: 22px;
+    height: 30px;
     padding: 0;
     background: none;
     border: none;
@@ -403,12 +392,20 @@
     font-family: inherit;
     font-size: 12px;
     font-weight: 700;
-    letter-spacing: 1.5px;
+    letter-spacing: 2px;
     text-transform: uppercase;
     text-align: center;
     cursor: pointer;
   }
-  #release-main { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+  #release-body {
+    opacity: 0;
+    transition: opacity 0.4s ease-out 0.05s;
+  }
+  #release-zone:hover #release-body,
+  #release-panel.open #release-body,
+  #release-panel.playing #release-body,
+  #release-panel:focus-within #release-body { opacity: 1; }
+  #release-main { display: flex; align-items: center; gap: 12px; margin-top: 4px; }
   #release-art {
     flex: none;
     width: 58px;
@@ -454,7 +451,7 @@
   #release-wave {
     display: block;
     width: 100%;
-    height: 54px;
+    height: 76px;
     margin-top: 10px;
     cursor: pointer;
   }
@@ -1426,6 +1423,7 @@
 <div id="release-zone">
   <div id="release-panel">
     <button id="release-label" type="button" aria-label="show or hide the newest release player">newest release</button>
+    <div id="release-body">
     <div id="release-main">
       <img id="release-art" alt="" hidden>
       <button id="release-play" type="button" aria-label="play a snippet" disabled>&#9654;</button>
@@ -1435,6 +1433,7 @@
       </div>
     </div>
     <canvas id="release-wave"></canvas>
+    </div>
   </div>
 </div>
 <iframe id="sc-probe" title="" tabindex="-1" aria-hidden="true" allow="autoplay" style="position:fixed;left:-9999px;top:0;width:300px;height:166px;border:0;opacity:0;pointer-events:none;"></iframe>
@@ -3855,6 +3854,49 @@
     return out;
   }
 
+  // ---- live reaction: loud = taller, bassy = blue, bright / high = red ----
+  const BARS_MAX = 160;
+  let barHue = [];            // colour remembered for every bar that has been played
+  let barBoost = [];          // how loud that moment was
+  let liveLevel = 0;          // 0..1, smoothed
+  let liveHue = 225;
+  let rafId = 0;
+  let relMode = 'sc';         // 'file' = real audio analysis (release.mp3), 'sc' = SoundCloud player
+  let relAudio = null, relAC = null, relAn = null, relFreq = null, relAnSrc = null;
+
+  function hueFor(r) { return 225 + 135 * Math.min(1, Math.max(0, r)); }   // blue -> violet -> red
+
+  function sampleAt(i, n) {
+    const arr = relSamples || seededSamples('toast', 160);
+    return arr[Math.min(arr.length - 1, Math.floor(i / n * arr.length))] || 0.2;
+  }
+
+  // reads the live sound (real analysis when the audio file is used)
+  function readLive() {
+    if (relMode === 'file' && relAn) {
+      relAn.getByteFrequencyData(relFreq);
+      const binHz = relAC.sampleRate / relAn.fftSize;
+      const avg = function (lo, hi) {
+        const a = Math.max(1, Math.floor(lo / binHz)), b = Math.min(relFreq.length - 1, Math.ceil(hi / binHz));
+        let sum = 0;
+        for (let k = a; k <= b; k++) sum += relFreq[k];
+        return sum / Math.max(1, b - a + 1) / 255;
+      };
+      const bass = avg(30, 220), mid = avg(220, 3000), high = avg(3000, 14000);
+      const level = Math.min(1, (bass * 0.55 + mid * 0.35 + high * 0.6) * 1.35);
+      const highW = high * 2.4 + mid * 0.5;
+      const r = highW / (bass * 1.2 + highW + 0.001);
+      return { level: level, hue: hueFor(r) };
+    }
+    // SoundCloud's player can't be analysed, so this is an estimate from its waveform data:
+    // loudness is real, "brightness" is guessed from how quickly the waveform changes
+    const n = BARS_MAX;
+    const i = Math.floor(relPos / (relDuration || 1) * n);
+    const a = sampleAt(i, n), b = sampleAt(i - 1, n), c = sampleAt(i + 1, n);
+    const jitter = Math.abs(a - b) + Math.abs(c - a);
+    return { level: a, hue: hueFor(jitter * 2.6) };
+  }
+
   function drawWave() {
     const dpr = window.devicePixelRatio || 1;
     const w = relWave.clientWidth;
@@ -3866,61 +3908,178 @@
     }
     relCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
     relCtx.clearRect(0, 0, w, h);
-    const samples = relSamples || seededSamples('toast', 120);
     const barW = 3, gap = 2;
     const count = Math.floor(w / (barW + gap));
     const mid = h / 2;
     const dur = relDuration || 1;
+    const playIdx = Math.floor(relPos / dur * count);
+
+    // remember colour + loudness of the moment that is playing right now
+    if (relPlaying && relReady) {
+      const live = readLive();
+      liveLevel += (live.level - liveLevel) * 0.45;
+      liveHue += (live.hue - liveHue) * 0.35;
+      if (barHue.length !== count) { barHue = new Array(count); barBoost = new Array(count); }
+      for (let k = Math.max(0, playIdx - 2); k <= playIdx && k < count; k++) {
+        barHue[k] = liveHue;
+        barBoost[k] = 0.35 + liveLevel * 0.9;
+      }
+    } else {
+      liveLevel *= 0.85;
+    }
+
     for (let i = 0; i < count; i++) {
       const frac = i / count;
-      const v = samples[Math.min(samples.length - 1, Math.floor(frac * samples.length))] || 0.2;
-      const bh = Math.max(3, v * h * 0.92);
       const t = frac * dur;
-      let color = '#3a3a3a';
-      if (t >= relStart && t <= relStart + PREVIEW_MS) color = '#7a7a7a';   // the snippet window
-      if (relReady && t >= relStart && t <= relPos) color = '#ffffff';       // already played
-      relCtx.fillStyle = color;
-      const x = i * (barW + gap);
-      relCtx.fillRect(x, mid - bh / 2, barW, bh);
+      let v = sampleAt(i, count);
+      let fill = '#3a3a3a';
+      if (t >= relStart && t <= relStart + PREVIEW_MS) fill = '#6a6a6a';       // the snippet window
+      if (barHue[i] !== undefined && t >= relStart) {                           // already played: keeps its colour
+        const boost = barBoost[i] || 0.5;
+        v = Math.min(1, v * (0.7 + boost * 0.9));
+        fill = 'hsl(' + barHue[i] + ', 90%, ' + (48 + boost * 14) + '%)';
+      }
+      const d = Math.abs(i - playIdx);
+      if (relPlaying && d < 6) {                                                // bounce around the playhead
+        const fall = 1 - d / 6;
+        v = Math.min(1, v + liveLevel * 0.55 * fall);
+        fill = 'hsl(' + liveHue + ', 100%, ' + (55 + liveLevel * 15) + '%)';
+      }
+      const bh = Math.max(3, v * h * 0.94);
+      relCtx.fillStyle = fill;
+      relCtx.fillRect(i * (barW + gap), mid - bh / 2, barW, bh);
     }
   }
+
+  function loop() {
+    drawWave();
+    if (relPlaying || liveLevel > 0.02) rafId = requestAnimationFrame(loop);
+    else rafId = 0;
+  }
+  function kick() { if (!rafId) rafId = requestAnimationFrame(loop); }
 
   function setPlaying(on) {
     relPlaying = on;
     relPlay.innerHTML = on ? '&#10074;&#10074;' : '&#9654;';
     relPanel.classList.toggle('playing', on);
     if (!on) relTime.textContent = '30s preview';
+    kick();
   }
 
   function chooseStart(dur) {            // by default the snippet starts about a third in
     return dur > PREVIEW_MS * 2 ? Math.floor(dur * 0.33) : 0;
   }
 
+  // one small interface for both ways of playing
+  function playerSeek(ms) {
+    if (relMode === 'file' && relAudio) relAudio.currentTime = ms / 1000;
+    else if (relWidget) relWidget.seekTo(ms);
+  }
+  function playerPlay() {
+    if (relMode === 'file' && relAudio) {
+      if (relAC && relAC.state === 'suspended') relAC.resume();
+      relAudio.play().catch(function () {});
+    } else if (relWidget) relWidget.play();
+  }
+  function playerPause() {
+    if (relMode === 'file' && relAudio) relAudio.pause();
+    else if (relWidget) relWidget.pause();
+  }
+
+  function tickProgress(ms) {
+    relPos = ms;
+    if (relPos >= relStart + PREVIEW_MS) {          // the snippet is over
+      playerPause();
+      playerSeek(relStart);
+      relPos = relStart;
+      barHue = []; barBoost = [];
+    }
+    if (relPlaying) relTime.textContent = fmtTime(relPos - relStart) + ' / 0:30 preview';
+  }
+
+  let relNeedSeek = true;     // the player itself still sits at 0:00
+
   function startSnippet() {
-    if (!relWidget || !relReady) return;
-    if (relPos < relStart || relPos >= relStart + PREVIEW_MS - 300) relWidget.seekTo(relStart);
-    relWidget.play();
+    if (!relReady) return;
+    if (relNeedSeek || relPos < relStart || relPos >= relStart + PREVIEW_MS - 300) playerSeek(relStart);
+    relNeedSeek = false;
+    playerPlay();
   }
 
   relPlay.addEventListener('click', function () {
-    if (!relWidget || !relReady) return;
-    if (relPlaying) relWidget.pause();
+    if (!relReady) return;
+    if (relPlaying) playerPause();
     else startSnippet();
   });
 
   // click the waveform to start a snippet from that spot
   relWave.addEventListener('click', function (e) {
-    if (!relWidget || !relReady || !relDuration) return;
+    if (!relReady || !relDuration) return;
     const rect = relWave.getBoundingClientRect();
     const frac = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
     relStart = Math.min(relDuration - 1000, Math.floor(frac * relDuration));
     relPos = relStart;
-    relWidget.seekTo(relStart);
-    relWidget.play();
+    barHue = []; barBoost = [];
+    relNeedSeek = false;
+    playerSeek(relStart);
+    playerPlay();
     drawWave();
   });
 
   window.addEventListener('resize', drawWave);
+
+  // Optional: put your song as release.mp3 next to this file and the waveform reacts to the REAL sound
+  const RELEASE_AUDIO = 'release.mp3';
+  function setupFileMode() {
+    fetch(RELEASE_AUDIO, { method: 'HEAD' }).then(function (r) {
+      if (!r.ok || !AudioCtx) return;
+      relMode = 'file';
+      relAudio = new Audio(RELEASE_AUDIO);
+      relAudio.preload = 'metadata';
+      relAudio.crossOrigin = 'anonymous';
+      relAudio.addEventListener('loadedmetadata', function () {
+        relDuration = relAudio.duration * 1000;
+        relStart = chooseStart(relDuration);
+        relPos = relStart;
+        relReady = true;
+        relPlay.disabled = false;
+        drawWave();
+      });
+      relAudio.addEventListener('play', function () {
+        if (!relAC) {
+          relAC = new AudioCtx();
+          relAn = relAC.createAnalyser();
+          relAn.fftSize = 2048;
+          relAn.smoothingTimeConstant = 0.6;
+          relFreq = new Uint8Array(relAn.frequencyBinCount);
+          relAnSrc = relAC.createMediaElementSource(relAudio);
+          relAnSrc.connect(relAn);
+          relAn.connect(relAC.destination);
+        }
+        if (relAC.state === 'suspended') relAC.resume();
+        setPlaying(true);
+      });
+      relAudio.addEventListener('pause', function () { setPlaying(false); });
+      relAudio.addEventListener('ended', function () { setPlaying(false); relPos = relStart; });
+      relAudio.addEventListener('timeupdate', function () { tickProgress(relAudio.currentTime * 1000); });
+      // use the real peaks of the file for the waveform shape
+      fetch(RELEASE_AUDIO).then(function (r) { return r.arrayBuffer(); }).then(function (buf) {
+        const ctx = new AudioCtx();
+        return ctx.decodeAudioData(buf).then(function (audio) { ctx.close(); return audio; });
+      }).then(function (audio) {
+        const ch = audio.getChannelData(0);
+        const n = BARS_MAX, step = Math.floor(ch.length / n), out = [];
+        for (let i = 0; i < n; i++) {
+          let peak = 0;
+          for (let k = i * step; k < (i + 1) * step; k += 40) peak = Math.max(peak, Math.abs(ch[k] || 0));
+          out.push(peak);
+        }
+        const max = Math.max.apply(null, out) || 1;
+        relSamples = out.map(function (v) { return Math.max(0.06, v / max); });
+        drawWave();
+      }).catch(function () {});
+    }).catch(function () {});
+  }
 
   function showRelease(r) {
     relTitle.textContent = r.title || 'listen on SoundCloud';
@@ -3992,8 +4151,9 @@
               relWidget.load(r.url, { auto_play: false, show_artwork: false });
             });
           } else {
-            relReady = false;
+            if (relMode !== 'file') relReady = false;
             relWidget.getDuration(function (d) {
+              if (relMode === 'file') return;
               relDuration = d || 0;
               relStart = chooseStart(relDuration);
               relPos = relStart;
@@ -4004,24 +4164,15 @@
           }
         });
 
-        relWidget.bind(E.PLAY, function () { setPlaying(true); });
-        relWidget.bind(E.PAUSE, function () { setPlaying(false); });
-        relWidget.bind(E.FINISH, function () { setPlaying(false); relPos = relStart; drawWave(); });
-        relWidget.bind(E.PLAY_PROGRESS, function (e) {
-          relPos = e.currentPosition;
-          if (relPos >= relStart + PREVIEW_MS) {          // the snippet is over
-            relWidget.pause();
-            relWidget.seekTo(relStart);
-            relPos = relStart;
-          }
-          if (relPlaying) relTime.textContent = fmtTime(relPos - relStart) + ' / 0:30 preview';
-          drawWave();
-        });
+        relWidget.bind(E.PLAY, function () { if (relMode === 'sc') setPlaying(true); });
+        relWidget.bind(E.PAUSE, function () { if (relMode === 'sc') setPlaying(false); });
+        relWidget.bind(E.FINISH, function () { if (relMode === 'sc') { setPlaying(false); relPos = relStart; } });
+        relWidget.bind(E.PLAY_PROGRESS, function (e) { if (relMode === 'sc') tickProgress(e.currentPosition); });
       } catch (e) {}
     };
     document.head.appendChild(sc);
   }
-  window.addEventListener('load', function () { setTimeout(loadNewestRelease, 600); });
+  window.addEventListener('load', function () { setupFileMode(); setTimeout(loadNewestRelease, 600); });
 
   /* ---------- Notice ("!" on the right) ---------- */
   const notice = document.getElementById('notice');
