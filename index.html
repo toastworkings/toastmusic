@@ -338,88 +338,126 @@
     animation: tabSpin 2.5s linear infinite;
   }
 
-  /* ---------- NEWEST RELEASE TAB (bottom) ---------- */
+  /* ---------- NEWEST RELEASE PLAYER (rolls up from the bottom) ---------- */
   #release-zone {
     position: fixed;
     bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 300px;
-    height: 32px;
-    z-index: 10;
-  }
-  #tab-zone[hidden] ~ #release-zone { display: none; }
-
-  #release-tab {
-    --angle: 0deg;
-    position: absolute;
-    bottom: 0;
     left: 0;
     right: 0;
-    height: 92px;
+    height: 34px;
+    z-index: 10;
+    pointer-events: none;
+  }
+  #tab-zone[hidden] ~ #release-zone { display: none; }
+  #release-zone::before {            /* the hover strip along the bottom edge */
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    width: min(620px, 100vw);
+    height: 34px;
+    transform: translateX(-50%);
+    pointer-events: auto;
+  }
+  #release-panel {
+    --angle: 0deg;
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    width: min(600px, calc(100vw - 20px));
     box-sizing: border-box;
-    transform: translateY(66px);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-    padding: 7px 12px 0;
+    transform: translateX(-50%) translateY(calc(100% - 28px));
+    padding: 6px 14px 14px;
     color: #ffffff;
     border: 2px solid transparent;
     border-bottom: none;
-    border-radius: 12px 12px 0 0;
-    background-image: linear-gradient(#222222, #222222), linear-gradient(#555555, #555555);
+    border-radius: 14px 14px 0 0;
+    background-image: linear-gradient(#1c1c1c, #1c1c1c), linear-gradient(#555555, #555555);
     background-origin: border-box;
     background-clip: padding-box, border-box;
-    box-shadow: 0 -2px 12px rgba(255, 255, 255, 0.1);
+    box-shadow: 0 -2px 14px rgba(255, 255, 255, 0.1);
     font-family: 'Poppins', sans-serif;
-    cursor: pointer;
-    transition: transform 0.25s ease-out;
+    transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+    pointer-events: auto;
     user-select: none;
     -webkit-user-select: none;
-    text-align: left;
   }
-  #release-zone:hover #release-tab,
-  #release-tab:focus-visible {
-    transform: translateY(0);
+  #release-zone:hover #release-panel,
+  #release-panel.open,
+  #release-panel.playing,
+  #release-panel:focus-within {
+    transform: translateX(-50%) translateY(0);
     background-image:
-      linear-gradient(#2a2a2a, #2a2a2a),
+      linear-gradient(#1c1c1c, #1c1c1c),
       conic-gradient(from var(--angle), #ff3b3b, #ffb000, #ffee00, #2bff5a, #00e5ff, #3b6bff, #c43bff, #ff3b9a, #ff3b3b);
     animation: tabSpin 2.5s linear infinite;
   }
   #release-label {
+    display: block;
+    width: 100%;
+    height: 22px;
+    padding: 0;
+    background: none;
+    border: none;
+    color: #ffffff;
+    font-family: inherit;
     font-size: 12px;
     font-weight: 700;
     letter-spacing: 1.5px;
     text-transform: uppercase;
-    line-height: 1;
-    padding-top: 5px;
+    text-align: center;
+    cursor: pointer;
   }
-  #release-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    width: 100%;
-    min-width: 0;
-  }
+  #release-main { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
   #release-art {
     flex: none;
-    width: 46px;
-    height: 46px;
-    border-radius: 6px;
+    width: 58px;
+    height: 58px;
+    border-radius: 8px;
     object-fit: cover;
     background: #333333;
   }
-  #release-text { min-width: 0; }
+  #release-play {
+    flex: none;
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    border-radius: 50%;
+    border: none;
+    background: #ffffff;
+    color: #000000;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    transition: transform 0.12s ease-out;
+  }
+  #release-play:hover { transform: scale(1.08); }
+  #release-play:disabled { opacity: 0.4; cursor: default; transform: none; }
+  #release-info { min-width: 0; flex: 1; }
   #release-title {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 700;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 200px;
   }
-  #release-sub { font-size: 11px; color: #b3b3b3; margin-top: 2px; }
+  #release-sub {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 11px;
+    color: #9a9a9a;
+    margin-top: 2px;
+  }
+  #release-open { color: #9a9a9a; text-decoration: underline; cursor: pointer; background: none; border: none; padding: 0; font: inherit; }
+  #release-open:hover { color: #ffffff; }
+  #release-wave {
+    display: block;
+    width: 100%;
+    height: 54px;
+    margin-top: 10px;
+    cursor: pointer;
+  }
 
   /* ---------- SUBMISSIONS VIEW ---------- */
   #submissions-view,
@@ -1384,20 +1422,22 @@
   <button id="submissions-tab" type="button">submissions</button>
 </div>
 
-<!-- ====== NEWEST RELEASE TAB ====== -->
+<!-- ====== NEWEST RELEASE PLAYER ====== -->
 <div id="release-zone">
-  <button id="release-tab" type="button" aria-label="listen to the newest release on SoundCloud">
-    <span id="release-label">newest release</span>
-    <span id="release-row">
+  <div id="release-panel">
+    <button id="release-label" type="button" aria-label="show or hide the newest release player">newest release</button>
+    <div id="release-main">
       <img id="release-art" alt="" hidden>
-      <span id="release-text">
+      <button id="release-play" type="button" aria-label="play a snippet" disabled>&#9654;</button>
+      <div id="release-info">
         <div id="release-title">loading...</div>
-        <div id="release-sub">click to listen on SoundCloud</div>
-      </span>
-    </span>
-  </button>
+        <div id="release-sub"><span id="release-time">30s preview</span><button id="release-open" type="button">open on SoundCloud</button></div>
+      </div>
+    </div>
+    <canvas id="release-wave"></canvas>
+  </div>
 </div>
-<iframe id="sc-probe" title="" tabindex="-1" aria-hidden="true" style="position:fixed;left:-9999px;top:0;width:300px;height:166px;border:0;opacity:0;pointer-events:none;"></iframe>
+<iframe id="sc-probe" title="" tabindex="-1" aria-hidden="true" allow="autoplay" style="position:fixed;left:-9999px;top:0;width:300px;height:166px;border:0;opacity:0;pointer-events:none;"></iframe>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -3770,31 +3810,130 @@
 
   setInterval(function () { if (isAdmin() && !document.hidden) refreshPendingCount(); }, 20000);
 
-  /* ---------- Newest release (read automatically from SoundCloud) ---------- */
+  /* ---------- Newest release player (read automatically from SoundCloud) ---------- */
   const SC_PROFILE = 'https://soundcloud.com/toast_03';
-  const releaseTab = document.getElementById('release-tab');
-  const releaseArt = document.getElementById('release-art');
-  const releaseTitle = document.getElementById('release-title');
-  let releaseUrl = SC_PROFILE;
+  const PREVIEW_MS = 30000;                       // how long a snippet plays
+  const relPanel = document.getElementById('release-panel');
+  const relArt = document.getElementById('release-art');
+  const relTitle = document.getElementById('release-title');
+  const relTime = document.getElementById('release-time');
+  const relPlay = document.getElementById('release-play');
+  const relWave = document.getElementById('release-wave');
+  const relCtx = relWave.getContext('2d');
+  let relUrl = SC_PROFILE;
+  let relSamples = null;      // waveform heights, 0..1
+  let relDuration = 0;        // ms
+  let relStart = 0;           // where the snippet starts (ms)
+  let relPos = 0;             // current position (ms)
+  let relPlaying = false;
+  let relWidget = null;
+  let relReady = false;
 
-  function showRelease(r) {
-    releaseTitle.textContent = r.title || 'listen on SoundCloud';
-    releaseUrl = r.url || SC_PROFILE;
-    if (r.art) {
-      releaseArt.src = r.art;
-      releaseArt.hidden = false;
+  document.getElementById('release-label').addEventListener('click', function () {
+    relPanel.classList.toggle('open');
+  });
+  document.getElementById('release-open').addEventListener('click', function () {
+    window.open(relUrl, '_blank', 'noopener,noreferrer');
+  });
+
+  function fmtTime(ms) {
+    const t = Math.max(0, Math.floor(ms / 1000));
+    return Math.floor(t / 60) + ':' + ('0' + (t % 60)).slice(-2);
+  }
+
+  function seededSamples(seed, n) {      // a stand-in waveform if the real one can't be loaded
+    let h = 0;
+    for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) | 0;
+    const out = [];
+    let smooth = 0.5;
+    for (let i = 0; i < n; i++) {
+      h = (h * 1664525 + 1013904223) | 0;
+      const r = ((h >>> 8) % 1000) / 1000;
+      smooth = smooth * 0.6 + r * 0.4;
+      out.push(0.25 + smooth * 0.75);
+    }
+    return out;
+  }
+
+  function drawWave() {
+    const dpr = window.devicePixelRatio || 1;
+    const w = relWave.clientWidth;
+    const h = relWave.clientHeight;
+    if (!w || !h) return;
+    if (relWave.width !== Math.round(w * dpr)) {
+      relWave.width = Math.round(w * dpr);
+      relWave.height = Math.round(h * dpr);
+    }
+    relCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    relCtx.clearRect(0, 0, w, h);
+    const samples = relSamples || seededSamples('toast', 120);
+    const barW = 3, gap = 2;
+    const count = Math.floor(w / (barW + gap));
+    const mid = h / 2;
+    const dur = relDuration || 1;
+    for (let i = 0; i < count; i++) {
+      const frac = i / count;
+      const v = samples[Math.min(samples.length - 1, Math.floor(frac * samples.length))] || 0.2;
+      const bh = Math.max(3, v * h * 0.92);
+      const t = frac * dur;
+      let color = '#3a3a3a';
+      if (t >= relStart && t <= relStart + PREVIEW_MS) color = '#7a7a7a';   // the snippet window
+      if (relReady && t >= relStart && t <= relPos) color = '#ffffff';       // already played
+      relCtx.fillStyle = color;
+      const x = i * (barW + gap);
+      relCtx.fillRect(x, mid - bh / 2, barW, bh);
     }
   }
 
-  releaseTab.addEventListener('click', function () {
-    window.open(releaseUrl, '_blank', 'noopener,noreferrer');
+  function setPlaying(on) {
+    relPlaying = on;
+    relPlay.innerHTML = on ? '&#10074;&#10074;' : '&#9654;';
+    relPanel.classList.toggle('playing', on);
+    if (!on) relTime.textContent = '30s preview';
+  }
+
+  function chooseStart(dur) {            // by default the snippet starts about a third in
+    return dur > PREVIEW_MS * 2 ? Math.floor(dur * 0.33) : 0;
+  }
+
+  function startSnippet() {
+    if (!relWidget || !relReady) return;
+    if (relPos < relStart || relPos >= relStart + PREVIEW_MS - 300) relWidget.seekTo(relStart);
+    relWidget.play();
+  }
+
+  relPlay.addEventListener('click', function () {
+    if (!relWidget || !relReady) return;
+    if (relPlaying) relWidget.pause();
+    else startSnippet();
   });
+
+  // click the waveform to start a snippet from that spot
+  relWave.addEventListener('click', function (e) {
+    if (!relWidget || !relReady || !relDuration) return;
+    const rect = relWave.getBoundingClientRect();
+    const frac = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+    relStart = Math.min(relDuration - 1000, Math.floor(frac * relDuration));
+    relPos = relStart;
+    relWidget.seekTo(relStart);
+    relWidget.play();
+    drawWave();
+  });
+
+  window.addEventListener('resize', drawWave);
+
+  function showRelease(r) {
+    relTitle.textContent = r.title || 'listen on SoundCloud';
+    relUrl = r.url || SC_PROFILE;
+    if (r.art) { relArt.src = r.art; relArt.hidden = false; }
+  }
 
   // show the last known release instantly, then check SoundCloud for a newer one
   try {
     const cached = JSON.parse(localStorage.getItem('toast_newest') || 'null');
     if (cached && cached.title) showRelease(cached);
   } catch (e) {}
+  drawWave();
 
   function pickNewest(sounds) {
     if (!sounds || !sounds.length) return null;
@@ -3805,29 +3944,78 @@
     return best;
   }
 
+  function loadWaveform(track) {
+    const url = track.waveform_url;
+    relSamples = seededSamples(String(track.title || 'toast'), 160);
+    drawWave();
+    if (!url) return;
+    fetch(url.replace(/\.png$/, '.json'))
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+      .then(function (d) {
+        if (!d || !d.samples || !d.samples.length) return;
+        const max = Math.max.apply(null, d.samples) || 1;
+        relSamples = d.samples.map(function (v) { return v / max; });
+        drawWave();
+      })
+      .catch(function () { /* keeps the stand-in waveform */ });
+  }
+
   function loadNewestRelease() {
     const probe = document.getElementById('sc-probe');
     const sc = document.createElement('script');
     sc.src = 'https://w.soundcloud.com/player/api.js';
-    let done = false;
+    let found = false;
     const fail = setTimeout(function () {
-      if (!done && releaseTitle.textContent === 'loading...') showRelease({});
+      if (!found && relTitle.textContent === 'loading...') showRelease({});
     }, 12000);
     sc.onload = function () {
       try {
         probe.src = 'https://w.soundcloud.com/player/?url=' + encodeURIComponent(SC_PROFILE) + '&auto_play=false';
-        const widget = SC.Widget(probe);
-        widget.bind(SC.Widget.Events.READY, function () {
-          widget.getSounds(function (sounds) {
-            const t = pickNewest(sounds);
-            if (!t) return;
-            done = true;
-            clearTimeout(fail);
-            const art = (t.artwork_url || (t.user && t.user.avatar_url) || '').replace('-large', '-t200x200');
-            const r = { title: t.title, url: t.permalink_url || SC_PROFILE, art: art };
-            showRelease(r);
-            try { localStorage.setItem('toast_newest', JSON.stringify(r)); } catch (e) {}
-          });
+        relWidget = SC.Widget(probe);
+        const E = SC.Widget.Events;
+        let loadedTrack = false;
+
+        relWidget.bind(E.READY, function () {
+          if (!loadedTrack) {
+            relWidget.getSounds(function (sounds) {
+              const t = pickNewest(sounds);
+              if (!t) return;
+              found = true;
+              clearTimeout(fail);
+              loadedTrack = true;
+              const art = (t.artwork_url || (t.user && t.user.avatar_url) || '').replace('-large', '-t200x200');
+              const r = { title: t.title, url: t.permalink_url || SC_PROFILE, art: art };
+              showRelease(r);
+              try { localStorage.setItem('toast_newest', JSON.stringify(r)); } catch (e) {}
+              loadWaveform(t);
+              // load just that track into the player, ready to play
+              relWidget.load(r.url, { auto_play: false, show_artwork: false });
+            });
+          } else {
+            relReady = false;
+            relWidget.getDuration(function (d) {
+              relDuration = d || 0;
+              relStart = chooseStart(relDuration);
+              relPos = relStart;
+              relReady = true;
+              relPlay.disabled = false;
+              drawWave();
+            });
+          }
+        });
+
+        relWidget.bind(E.PLAY, function () { setPlaying(true); });
+        relWidget.bind(E.PAUSE, function () { setPlaying(false); });
+        relWidget.bind(E.FINISH, function () { setPlaying(false); relPos = relStart; drawWave(); });
+        relWidget.bind(E.PLAY_PROGRESS, function (e) {
+          relPos = e.currentPosition;
+          if (relPos >= relStart + PREVIEW_MS) {          // the snippet is over
+            relWidget.pause();
+            relWidget.seekTo(relStart);
+            relPos = relStart;
+          }
+          if (relPlaying) relTime.textContent = fmtTime(relPos - relStart) + ' / 0:30 preview';
+          drawWave();
         });
       } catch (e) {}
     };
