@@ -338,6 +338,89 @@
     animation: tabSpin 2.5s linear infinite;
   }
 
+  /* ---------- NEWEST RELEASE TAB (bottom) ---------- */
+  #release-zone {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 300px;
+    height: 32px;
+    z-index: 10;
+  }
+  #tab-zone[hidden] ~ #release-zone { display: none; }
+
+  #release-tab {
+    --angle: 0deg;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 92px;
+    box-sizing: border-box;
+    transform: translateY(66px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 12px 0;
+    color: #ffffff;
+    border: 2px solid transparent;
+    border-bottom: none;
+    border-radius: 12px 12px 0 0;
+    background-image: linear-gradient(#222222, #222222), linear-gradient(#555555, #555555);
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+    box-shadow: 0 -2px 12px rgba(255, 255, 255, 0.1);
+    font-family: 'Poppins', sans-serif;
+    cursor: pointer;
+    transition: transform 0.25s ease-out;
+    user-select: none;
+    -webkit-user-select: none;
+    text-align: left;
+  }
+  #release-zone:hover #release-tab,
+  #release-tab:focus-visible {
+    transform: translateY(0);
+    background-image:
+      linear-gradient(#2a2a2a, #2a2a2a),
+      conic-gradient(from var(--angle), #ff3b3b, #ffb000, #ffee00, #2bff5a, #00e5ff, #3b6bff, #c43bff, #ff3b9a, #ff3b3b);
+    animation: tabSpin 2.5s linear infinite;
+  }
+  #release-label {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    line-height: 1;
+    padding-top: 5px;
+  }
+  #release-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-width: 0;
+  }
+  #release-art {
+    flex: none;
+    width: 46px;
+    height: 46px;
+    border-radius: 6px;
+    object-fit: cover;
+    background: #333333;
+  }
+  #release-text { min-width: 0; }
+  #release-title {
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+  }
+  #release-sub { font-size: 11px; color: #b3b3b3; margin-top: 2px; }
+
   /* ---------- SUBMISSIONS VIEW ---------- */
   #submissions-view,
   #comments-view {
@@ -1300,6 +1383,21 @@
 <div id="tab-zone">
   <button id="submissions-tab" type="button">submissions</button>
 </div>
+
+<!-- ====== NEWEST RELEASE TAB ====== -->
+<div id="release-zone">
+  <button id="release-tab" type="button" aria-label="listen to the newest release on SoundCloud">
+    <span id="release-label">newest release</span>
+    <span id="release-row">
+      <img id="release-art" alt="" hidden>
+      <span id="release-text">
+        <div id="release-title">loading...</div>
+        <div id="release-sub">click to listen on SoundCloud</div>
+      </span>
+    </span>
+  </button>
+</div>
+<iframe id="sc-probe" title="" tabindex="-1" aria-hidden="true" style="position:fixed;left:-9999px;top:0;width:300px;height:166px;border:0;opacity:0;pointer-events:none;"></iframe>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -3671,6 +3769,71 @@
   reviewModal.addEventListener('click', function (e) { if (e.target === reviewModal) reviewModal.hidden = true; });
 
   setInterval(function () { if (isAdmin() && !document.hidden) refreshPendingCount(); }, 20000);
+
+  /* ---------- Newest release (read automatically from SoundCloud) ---------- */
+  const SC_PROFILE = 'https://soundcloud.com/toast_03';
+  const releaseTab = document.getElementById('release-tab');
+  const releaseArt = document.getElementById('release-art');
+  const releaseTitle = document.getElementById('release-title');
+  let releaseUrl = SC_PROFILE;
+
+  function showRelease(r) {
+    releaseTitle.textContent = r.title || 'listen on SoundCloud';
+    releaseUrl = r.url || SC_PROFILE;
+    if (r.art) {
+      releaseArt.src = r.art;
+      releaseArt.hidden = false;
+    }
+  }
+
+  releaseTab.addEventListener('click', function () {
+    window.open(releaseUrl, '_blank', 'noopener,noreferrer');
+  });
+
+  // show the last known release instantly, then check SoundCloud for a newer one
+  try {
+    const cached = JSON.parse(localStorage.getItem('toast_newest') || 'null');
+    if (cached && cached.title) showRelease(cached);
+  } catch (e) {}
+
+  function pickNewest(sounds) {
+    if (!sounds || !sounds.length) return null;
+    let best = sounds[0];
+    sounds.forEach(function (t) {
+      if (t && t.created_at && best.created_at && new Date(t.created_at) > new Date(best.created_at)) best = t;
+    });
+    return best;
+  }
+
+  function loadNewestRelease() {
+    const probe = document.getElementById('sc-probe');
+    const sc = document.createElement('script');
+    sc.src = 'https://w.soundcloud.com/player/api.js';
+    let done = false;
+    const fail = setTimeout(function () {
+      if (!done && releaseTitle.textContent === 'loading...') showRelease({});
+    }, 12000);
+    sc.onload = function () {
+      try {
+        probe.src = 'https://w.soundcloud.com/player/?url=' + encodeURIComponent(SC_PROFILE) + '&auto_play=false';
+        const widget = SC.Widget(probe);
+        widget.bind(SC.Widget.Events.READY, function () {
+          widget.getSounds(function (sounds) {
+            const t = pickNewest(sounds);
+            if (!t) return;
+            done = true;
+            clearTimeout(fail);
+            const art = (t.artwork_url || (t.user && t.user.avatar_url) || '').replace('-large', '-t200x200');
+            const r = { title: t.title, url: t.permalink_url || SC_PROFILE, art: art };
+            showRelease(r);
+            try { localStorage.setItem('toast_newest', JSON.stringify(r)); } catch (e) {}
+          });
+        });
+      } catch (e) {}
+    };
+    document.head.appendChild(sc);
+  }
+  window.addEventListener('load', function () { setTimeout(loadNewestRelease, 600); });
 
   /* ---------- Notice ("!" on the right) ---------- */
   const notice = document.getElementById('notice');
