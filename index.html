@@ -376,9 +376,7 @@
     -webkit-user-select: none;
   }
   #release-zone:hover #release-panel,
-  #release-panel.open,
-  #release-panel.playing,
-  #release-panel:focus-within {
+  #release-panel.open {
     transform: translateX(-50%) translateY(0);
   }
   #release-label {
@@ -402,9 +400,7 @@
     transition: opacity 0.4s ease-out 0.05s;
   }
   #release-zone:hover #release-body,
-  #release-panel.open #release-body,
-  #release-panel.playing #release-body,
-  #release-panel:focus-within #release-body { opacity: 1; }
+  #release-panel.open #release-body { opacity: 1; }
   #release-main { display: flex; align-items: center; gap: 12px; margin-top: 4px; }
   #release-art {
     flex: none;
@@ -3828,8 +3824,15 @@
   let relWidget = null;
   let relReady = false;
 
+  // phones have no hover, so tapping the label opens / closes it there
+  const relCanHover = !!(window.matchMedia && window.matchMedia('(hover: hover)').matches);
   document.getElementById('release-label').addEventListener('click', function () {
-    relPanel.classList.toggle('open');
+    if (!relCanHover) relPanel.classList.toggle('open');
+  });
+  // buttons keep focus after a click, so let go of it: the player rolls back when the mouse leaves
+  relPanel.addEventListener('click', function (e) {
+    const b = e.target.closest && e.target.closest('button');
+    if (b && b.blur) b.blur();
   });
   document.getElementById('release-open').addEventListener('click', function () {
     window.open(relUrl, '_blank', 'noopener,noreferrer');
@@ -3932,26 +3935,49 @@
       liveLevel *= 0.7;
     }
 
+    const winA = Math.floor(relStart / dur * count);
+    const winB = Math.ceil((relStart + PREVIEW_MS) / dur * count);
     for (let i = 0; i < count; i++) {
       const frac = i / count;
       const t = frac * dur;
       let v = sampleAt(i, count);
       let fill = '#3a3a3a';
-      if (t >= relStart && t <= relStart + PREVIEW_MS) fill = '#6a6a6a';       // the snippet window
-      if (barHue[i] !== undefined && t >= relStart) {                           // already played: keeps its colour
-        const boost = barBoost[i] || 0.5;
-        v = Math.min(1, v * (0.7 + boost * 0.9));
-        fill = 'hsl(' + barHue[i] + ', 90%, ' + (48 + boost * 14) + '%)';
-      }
-      const d = Math.abs(i - playIdx);
-      if (relPlaying && d < 9) {                                                // bounce around the playhead
-        const fall = Math.pow(1 - d / 9, 1.4);
-        v = Math.min(1, v + liveLevel * 0.85 * fall);
-        fill = 'hsl(' + liveHue + ', 100%, ' + (55 + liveLevel * 15) + '%)';
+      const inWin = i >= winA && i <= winB;
+      if (inWin) {
+        fill = '#6a6a6a';                                                      // the preview section
+        if (barHue[i] !== undefined) {                                         // already played: keeps its colour
+          const boost = barBoost[i] || 0.5;
+          v = Math.min(1, v * (0.7 + boost * 0.9));
+          fill = 'hsl(' + barHue[i] + ', 90%, ' + (48 + boost * 14) + '%)';
+        }
+        const d = Math.abs(i - playIdx);
+        if (relPlaying && d < 9) {                                             // bounce around the playhead, never outside the preview
+          const fall = Math.pow(1 - d / 9, 1.4);
+          v = Math.min(1, v + liveLevel * 0.85 * fall);
+          fill = 'hsl(' + liveHue + ', 100%, ' + (55 + liveLevel * 15) + '%)';
+        }
       }
       const bh = Math.max(3, v * h * 0.94);
       relCtx.fillStyle = fill;
       relCtx.fillRect(i * (barW + gap), mid - bh / 2, barW, bh);
+    }
+
+    // the playhead: a line that glows in the colour of the sound and pulses with it
+    if (relReady && relPos >= relStart - 50 && relPos <= relStart + PREVIEW_MS + 50) {
+      const px = Math.min(w - 1, Math.max(1, relPos / dur * w));
+      const pulse = relPlaying ? liveLevel : 0;
+      const col = relPlaying ? 'hsl(' + liveHue + ', 100%, 70%)' : '#ffffff';
+      relCtx.save();
+      relCtx.shadowColor = col;
+      relCtx.shadowBlur = 6 + pulse * 18;
+      relCtx.fillStyle = '#ffffff';
+      const lw = 2 + pulse * 2;
+      relCtx.fillRect(px - lw / 2, 2, lw, h - 4);
+      relCtx.beginPath();
+      relCtx.arc(px, 4, 3.5 + pulse * 2.5, 0, Math.PI * 2);
+      relCtx.fillStyle = col;
+      relCtx.fill();
+      relCtx.restore();
     }
   }
 
