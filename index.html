@@ -3859,6 +3859,8 @@
 
   // ---- live reaction: loud = taller, bassy = blue, bright / high = red ----
   const BARS_MAX = 160;
+  let specBusy = false;
+  let specVal = [];           // current height (0..1) of every equalizer bar
   let barHue = [];            // colour remembered for every bar that has been played
   let barBoost = [];          // how loud that moment was
   let liveLevel = 0;          // 0..1, smoothed
@@ -3937,45 +3939,82 @@
 
     const winA = Math.floor(relStart / dur * count);
     const winB = Math.ceil((relStart + PREVIEW_MS) / dur * count);
+    const step = barW + gap;
+
+    // everything outside the preview: the plain waveform in dark grey
     for (let i = 0; i < count; i++) {
-      const frac = i / count;
-      const t = frac * dur;
-      let v = sampleAt(i, count);
-      let fill = '#3a3a3a';
-      const inWin = i >= winA && i <= winB;
-      if (inWin) {
-        fill = '#6a6a6a';                                                      // the preview section
-        if (barHue[i] !== undefined) {                                         // already played: keeps its colour
-          const boost = barBoost[i] || 0.5;
-          v = Math.min(1, v * (0.7 + boost * 0.9));
-          fill = 'hsl(' + barHue[i] + ', 90%, ' + (48 + boost * 14) + '%)';
-        }
-        const d = Math.abs(i - playIdx);
-        if (relPlaying && d < 9) {                                             // bounce around the playhead, never outside the preview
-          const fall = Math.pow(1 - d / 9, 1.4);
-          v = Math.min(1, v + liveLevel * 0.85 * fall);
-          fill = 'hsl(' + liveHue + ', 100%, ' + (55 + liveLevel * 15) + '%)';
-        }
-      }
-      const bh = Math.max(3, v * h * 0.94);
-      relCtx.fillStyle = fill;
-      relCtx.fillRect(i * (barW + gap), mid - bh / 2, barW, bh);
+      if (i >= winA && i <= winB) continue;
+      const bh = Math.max(3, sampleAt(i, count) * h * 0.94);
+      relCtx.fillStyle = '#3a3a3a';
+      relCtx.fillRect(i * step, mid - bh / 2, barW, bh);
     }
 
-    // the playhead: a line that glows in the colour of the sound and pulses with it
+    // inside the preview: an equalizer. sub / bass on the left, high frequencies on the right,
+    // blue (cold) on the left to red (warm) on the right.
+    const X0 = winA * step;
+    const X1 = Math.min(w, (winB + 1) * step - gap);
+    const eqStep = 3, eqW = 2;
+    const M = Math.max(4, Math.floor((X1 - X0) / eqStep));
+    if (specVal.length !== M) { specVal = new Array(M); for (let k = 0; k < M; k++) specVal[k] = 0.1 + 0.16 * (1 - k / M); }
+
+    let fresh = null;
+    if (relPlaying && relReady) {
+      if (relMode === 'file' && relAn) {
+        const binHz = relAC.sampleRate / relAn.fftSize;
+        fresh = new Array(M);
+        for (let k = 0; k < M; k++) {
+          const f0 = 30 * Math.pow(16000 / 30, k / M);
+          const f1 = 30 * Math.pow(16000 / 30, (k + 1) / M);
+          const a = Math.max(1, Math.floor(f0 / binHz));
+          const b = Math.min(relFreq.length - 1, Math.max(a, Math.ceil(f1 / binHz)));
+          let peak = 0, sum = 0;
+          for (let q = a; q <= b; q++) { sum += relFreq[q]; if (relFreq[q] > peak) peak = relFreq[q]; }
+          const val = (peak * 0.6 + sum / (b - a + 1) * 0.4) / 255;
+          const x = k / M;
+          fresh[k] = Math.min(1, Math.pow(val, 1.25) * (1 + 1.6 * x));      // lift the highs a little, like an analyser does
+        }
+      } else {
+        // SoundCloud's player can't be analysed: this is an estimate that follows the song's loudness
+        const tt = performance.now() / 1000;
+        fresh = new Array(M);
+        for (let k = 0; k < M; k++) {
+          const x = k / M;
+          const wob = 0.5 + 0.5 * Math.sin(tt * (3 + k * 0.7) + k * 1.9);
+          fresh[k] = Math.min(1, liveLevel * (1.05 - 0.55 * x) * (0.55 + 0.45 * wob));
+        }
+      }
+    }
+
+    specBusy = !!fresh;
+    for (let k = 0; k < M; k++) {
+      const x = k / M;
+      const idle = 0.1 + 0.16 * (1 - x) + 0.03 * Math.sin(k * 1.7);
+      const target = fresh ? fresh[k] : idle;
+      const rising = target > specVal[k];
+      specVal[k] += (target - specVal[k]) * (rising ? 0.9 : 0.35);      // jumps up on a hit, falls quickly
+      if (Math.abs(target - specVal[k]) > 0.02) specBusy = true;
+      const v = specVal[k];
+      const hue = 225 + 135 * x;                                          // blue -> violet -> red
+      const vib = fresh ? Math.min(1, v * 1.15) : 0;                      // louder = more vibrant
+      const sat = 28 + 72 * vib;
+      const light = 26 + 34 * vib;
+      relCtx.fillStyle = 'hsl(' + hue + ', ' + sat + '%, ' + light + '%)';
+      const bh = Math.max(3, v * h * 0.96);
+      relCtx.fillRect(X0 + k * eqStep, mid - bh / 2, eqW, bh);
+    }
+
+    // the playhead: where in the song you are (it travels across the preview)
     if (relReady && relPos >= relStart - 50 && relPos <= relStart + PREVIEW_MS + 50) {
-      const px = Math.min(w - 1, Math.max(1, relPos / dur * w));
+      const px = Math.min(X1, Math.max(X0, X0 + (relPos - relStart) / PREVIEW_MS * (X1 - X0)));
       const pulse = relPlaying ? liveLevel : 0;
-      const col = relPlaying ? 'hsl(' + liveHue + ', 100%, 70%)' : '#ffffff';
       relCtx.save();
-      relCtx.shadowColor = col;
-      relCtx.shadowBlur = 6 + pulse * 18;
+      relCtx.shadowColor = '#ffffff';
+      relCtx.shadowBlur = 4 + pulse * 14;
       relCtx.fillStyle = '#ffffff';
-      const lw = 2 + pulse * 2;
+      const lw = 1.5 + pulse * 1.5;
       relCtx.fillRect(px - lw / 2, 2, lw, h - 4);
       relCtx.beginPath();
-      relCtx.arc(px, 4, 3.5 + pulse * 2.5, 0, Math.PI * 2);
-      relCtx.fillStyle = col;
+      relCtx.arc(px, 4, 3 + pulse * 2, 0, Math.PI * 2);
       relCtx.fill();
       relCtx.restore();
     }
@@ -3987,7 +4026,7 @@
       else if (relStamp) relPos = Math.min(relPosRaw + (performance.now() - relStamp), relStart + PREVIEW_MS);
     }
     drawWave();
-    if (relPlaying || liveLevel > 0.02) rafId = requestAnimationFrame(loop);
+    if (relPlaying || liveLevel > 0.02 || specBusy) rafId = requestAnimationFrame(loop);
     else rafId = 0;
   }
   function kick() { if (!rafId) rafId = requestAnimationFrame(loop); }
@@ -4107,8 +4146,8 @@
         if (!relAC) {
           relAC = new AudioCtx();
           relAn = relAC.createAnalyser();
-          relAn.fftSize = 1024;
-          relAn.smoothingTimeConstant = 0.25;
+          relAn.fftSize = 2048;
+          relAn.smoothingTimeConstant = 0.3;
           relFreq = new Uint8Array(relAn.frequencyBinCount);
           relAnSrc = relAC.createMediaElementSource(relAudio);
           relAnSrc.connect(relAn);
