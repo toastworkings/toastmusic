@@ -3892,7 +3892,10 @@
     // loudness is real, "brightness" is guessed from how quickly the waveform changes
     const n = BARS_MAX;
     const i = Math.floor(relPos / (relDuration || 1) * n);
-    const a = sampleAt(i, n), b = sampleAt(i - 1, n), c = sampleAt(i + 1, n);
+    const fpos = relPos / (relDuration || 1) * n;
+    const f = fpos - Math.floor(fpos);
+    const a = sampleAt(i, n) * (1 - f) + sampleAt(i + 1, n) * f;
+    const b = sampleAt(i - 1, n), c = sampleAt(i + 1, n);
     const jitter = Math.abs(a - b) + Math.abs(c - a);
     return { level: a, hue: hueFor(jitter * 2.6) };
   }
@@ -3917,15 +3920,16 @@
     // remember colour + loudness of the moment that is playing right now
     if (relPlaying && relReady) {
       const live = readLive();
-      liveLevel += (live.level - liveLevel) * 0.45;
-      liveHue += (live.hue - liveHue) * 0.35;
+      const rise = live.level > liveLevel;
+      liveLevel += (live.level - liveLevel) * (rise ? 0.95 : 0.5);   // jumps up instantly, falls quickly
+      liveHue += (live.hue - liveHue) * 0.7;
       if (barHue.length !== count) { barHue = new Array(count); barBoost = new Array(count); }
       for (let k = Math.max(0, playIdx - 2); k <= playIdx && k < count; k++) {
         barHue[k] = liveHue;
-        barBoost[k] = 0.35 + liveLevel * 0.9;
+        barBoost[k] = 0.3 + liveLevel * 1.1;
       }
     } else {
-      liveLevel *= 0.85;
+      liveLevel *= 0.7;
     }
 
     for (let i = 0; i < count; i++) {
@@ -3940,9 +3944,9 @@
         fill = 'hsl(' + barHue[i] + ', 90%, ' + (48 + boost * 14) + '%)';
       }
       const d = Math.abs(i - playIdx);
-      if (relPlaying && d < 6) {                                                // bounce around the playhead
-        const fall = 1 - d / 6;
-        v = Math.min(1, v + liveLevel * 0.55 * fall);
+      if (relPlaying && d < 9) {                                                // bounce around the playhead
+        const fall = Math.pow(1 - d / 9, 1.4);
+        v = Math.min(1, v + liveLevel * 0.85 * fall);
         fill = 'hsl(' + liveHue + ', 100%, ' + (55 + liveLevel * 15) + '%)';
       }
       const bh = Math.max(3, v * h * 0.94);
@@ -3952,6 +3956,10 @@
   }
 
   function loop() {
+    if (relPlaying) {
+      if (relMode === 'file' && relAudio) tickProgress(relAudio.currentTime * 1000);   // read every frame
+      else if (relStamp) relPos = Math.min(relPosRaw + (performance.now() - relStamp), relStart + PREVIEW_MS);
+    }
     drawWave();
     if (relPlaying || liveLevel > 0.02) rafId = requestAnimationFrame(loop);
     else rafId = 0;
@@ -3989,8 +3997,11 @@
     else if (relWidget) relWidget.pause();
   }
 
+  let relPosRaw = 0;
   function tickProgress(ms) {
     relPos = ms;
+    relPosRaw = ms;
+    relStamp = performance.now();
     if (relPos >= relStart + PREVIEW_MS) {          // the snippet is over
       playerPause();
       playerSeek(relStart);
@@ -4003,6 +4014,8 @@
   let relNeedSeek = true;     // the player itself still sits at 0:00
   let relSoundIndex = 0;      // which entry of SoundCloud's list is the newest song
   let relSkipped = false;
+  let relNeedSeekTo = null;   // a spot the visitor clicked before SoundCloud had started
+  let relStamp = 0;           // when the last position update arrived (for smooth motion)
 
   function startSnippet() {
     if (!relReady) return;
@@ -4017,18 +4030,32 @@
     else startSnippet();
   });
 
-  // click the waveform to start a snippet from that spot
-  relWave.addEventListener('click', function (e) {
-    if (!relReady || !relDuration) return;
+  // only the 30 second preview (the lighter part) can be clicked
+  function waveTimeAt(e) {
     const rect = relWave.getBoundingClientRect();
     const frac = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
-    relStart = Math.min(relDuration - 1000, Math.floor(frac * relDuration));
-    relPos = relStart;
-    barHue = []; barBoost = [];
-    relNeedSeek = false;
-    playerSeek(relStart);
-    playerPlay();
-    drawWave();
+    return frac * (relDuration || 1);
+  }
+  function inSnippet(t) { return t >= relStart && t <= relStart + PREVIEW_MS; }
+
+  relWave.addEventListener('mousemove', function (e) {
+    relWave.style.cursor = relReady && inSnippet(waveTimeAt(e)) ? 'pointer' : 'default';
+  });
+
+  relWave.addEventListener('click', function (e) {
+    if (!relReady || !relDuration) return;
+    const t = waveTimeAt(e);
+    if (!inSnippet(t)) return;                     // greyed out = not playable
+    relPos = t;
+    if (relMode === 'file' || relSkipped) {
+      relNeedSeek = false;
+      playerSeek(Math.floor(t));
+      playerPlay();
+    } else {
+      relNeedSeekTo = Math.floor(t);               // SoundCloud seeks here once it really starts
+      playerPlay();
+    }
+    kick();
   });
 
   window.addEventListener('resize', drawWave);
@@ -4054,8 +4081,8 @@
         if (!relAC) {
           relAC = new AudioCtx();
           relAn = relAC.createAnalyser();
-          relAn.fftSize = 2048;
-          relAn.smoothingTimeConstant = 0.6;
+          relAn.fftSize = 1024;
+          relAn.smoothingTimeConstant = 0.25;
           relFreq = new Uint8Array(relAn.frequencyBinCount);
           relAnSrc = relAC.createMediaElementSource(relAudio);
           relAnSrc.connect(relAn);
@@ -4168,7 +4195,8 @@
           setPlaying(true);
           if (relNeedSeek) {                      // first play: jump to the snippet start
             relNeedSeek = false;
-            relWidget.seekTo(relStart);
+            relWidget.seekTo(relNeedSeekTo !== null ? relNeedSeekTo : relStart);
+            relNeedSeekTo = null;
           }
           if (!relDuration) relWidget.getDuration(function (d) { relDuration = d || 0; relStart = chooseStart(relDuration); relNeedSeek = true; drawWave(); });
         });
