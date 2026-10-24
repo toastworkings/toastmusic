@@ -429,7 +429,7 @@
     transition: transform 0.12s ease-out;
   }
   #release-play:hover { transform: scale(1.08); }
-  #release-play:disabled { opacity: 0.4; cursor: default; transform: none; }
+  #release-play:disabled { opacity: 0.75; }
   #release-info { min-width: 0; flex: 1; }
   #release-title {
     font-size: 14px;
@@ -1426,7 +1426,7 @@
     <div id="release-body">
     <div id="release-main">
       <img id="release-art" alt="" hidden>
-      <button id="release-play" type="button" aria-label="play a snippet" disabled>&#9654;</button>
+      <button id="release-play" type="button" aria-label="play a snippet">&#9654;</button>
       <div id="release-info">
         <div id="release-title">loading...</div>
         <div id="release-sub"><span id="release-time">30s preview</span><button id="release-open" type="button">open on SoundCloud</button></div>
@@ -3979,7 +3979,10 @@
     if (relMode === 'file' && relAudio) {
       if (relAC && relAC.state === 'suspended') relAC.resume();
       relAudio.play().catch(function () {});
-    } else if (relWidget) relWidget.play();
+    } else if (relWidget) {
+      if (!relSkipped) { relSkipped = true; relWidget.skip(relSoundIndex); }   // pick the newest song
+      relWidget.play();
+    }
   }
   function playerPause() {
     if (relMode === 'file' && relAudio) relAudio.pause();
@@ -3998,16 +4001,18 @@
   }
 
   let relNeedSeek = true;     // the player itself still sits at 0:00
+  let relSoundIndex = 0;      // which entry of SoundCloud's list is the newest song
+  let relSkipped = false;
 
   function startSnippet() {
     if (!relReady) return;
     if (relNeedSeek || relPos < relStart || relPos >= relStart + PREVIEW_MS - 300) playerSeek(relStart);
-    relNeedSeek = false;
+    if (relMode === 'file' || relSkipped) relNeedSeek = false;   // SoundCloud seeks once it really starts playing
     playerPlay();
   }
 
   relPlay.addEventListener('click', function () {
-    if (!relReady) return;
+    if (!relReady) { window.open(relUrl, '_blank', 'noopener,noreferrer'); return; }
     if (relPlaying) playerPause();
     else startSnippet();
   });
@@ -4135,36 +4140,38 @@
         let loadedTrack = false;
 
         relWidget.bind(E.READY, function () {
-          if (!loadedTrack) {
-            relWidget.getSounds(function (sounds) {
-              const t = pickNewest(sounds);
-              if (!t) return;
-              found = true;
-              clearTimeout(fail);
-              loadedTrack = true;
-              const art = (t.artwork_url || (t.user && t.user.avatar_url) || '').replace('-large', '-t200x200');
-              const r = { title: t.title, url: t.permalink_url || SC_PROFILE, art: art };
-              showRelease(r);
-              try { localStorage.setItem('toast_newest', JSON.stringify(r)); } catch (e) {}
-              loadWaveform(t);
-              // load just that track into the player, ready to play
-              relWidget.load(r.url, { auto_play: false, show_artwork: false });
-            });
-          } else {
-            if (relMode !== 'file') relReady = false;
-            relWidget.getDuration(function (d) {
-              if (relMode === 'file') return;
-              relDuration = d || 0;
-              relStart = chooseStart(relDuration);
-              relPos = relStart;
-              relReady = true;
-              relPlay.disabled = false;
-              drawWave();
-            });
-          }
+          if (loadedTrack) return;
+          relWidget.getSounds(function (sounds) {
+            const t = pickNewest(sounds);
+            if (!t) return;
+            found = true;
+            clearTimeout(fail);
+            loadedTrack = true;
+            const art = (t.artwork_url || (t.user && t.user.avatar_url) || '').replace('-large', '-t200x200');
+            const r = { title: t.title, url: t.permalink_url || SC_PROFILE, art: art };
+            showRelease(r);
+            try { localStorage.setItem('toast_newest', JSON.stringify(r)); } catch (e) {}
+            loadWaveform(t);
+            if (relMode === 'file') return;
+            relSoundIndex = Math.max(0, sounds.indexOf(t));
+            relDuration = Number(t.duration) || relDuration || 0;
+            relStart = chooseStart(relDuration);
+            relPos = relStart;
+            relReady = true;
+            relPlay.disabled = false;
+            drawWave();
+          });
         });
 
-        relWidget.bind(E.PLAY, function () { if (relMode === 'sc') setPlaying(true); });
+        relWidget.bind(E.PLAY, function () {
+          if (relMode !== 'sc') return;
+          setPlaying(true);
+          if (relNeedSeek) {                      // first play: jump to the snippet start
+            relNeedSeek = false;
+            relWidget.seekTo(relStart);
+          }
+          if (!relDuration) relWidget.getDuration(function (d) { relDuration = d || 0; relStart = chooseStart(relDuration); relNeedSeek = true; drawWave(); });
+        });
         relWidget.bind(E.PAUSE, function () { if (relMode === 'sc') setPlaying(false); });
         relWidget.bind(E.FINISH, function () { if (relMode === 'sc') { setPlaying(false); relPos = relStart; } });
         relWidget.bind(E.PLAY_PROGRESS, function (e) { if (relMode === 'sc') tickProgress(e.currentPosition); });
