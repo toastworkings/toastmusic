@@ -180,6 +180,7 @@
   }
 
   [hidden] { display: none !important; }
+  html, body { overflow-anchor: none; }
 
   /* ---------- MAIN VIEW ---------- */
   #main-view {
@@ -3421,6 +3422,9 @@
   function showMain() {
     if (rolling && rollBack) return;
     resetWhoAnim();
+    // where the list really is on screen right now (measured before anything is reset,
+    // so going back in the middle of the roll-out or after an early scroll can't misplace it)
+    const subTopNow = subView.hidden ? 0 : subView.getBoundingClientRect().top;
     rollToken++;
     rolling = false;
     resetRollStyles();
@@ -3432,7 +3436,7 @@
     if (canRollBack() && !subView.hidden && commentsView.hidden) {
       subView.getAnimations({ subtree: true }).forEach(function (an) { an.cancel(); });
       mainView.hidden = false;
-      rollDown(subView, mainView, window.scrollY, 0, function () {
+      rollDown(subView, mainView, -subTopNow, 0, function () {
         tabZone.hidden = false;
         window.scrollTo(0, 0);
       });
