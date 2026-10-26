@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>toast</title>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&family=Indie+Flower&family=Pacifico&family=Bangers&family=Press+Start+2P&family=Special+Elite&family=Permanent+Marker&family=Orbitron:wght@700&family=Creepster&family=Lobster&family=Righteous&family=Caveat:wght@700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&family=Indie+Flower&family=Barrio&family=Silkscreen&family=Bruno+Ace+SC&family=Libre+Barcode+39+Text&family=Rubik+Iso&family=Frijole&family=Palette+Mosaic&display=swap" rel="stylesheet">
 <style>
   /* ---------- THEME (dark is the default, light is a full second palette) ---------- */
   :root {
@@ -212,8 +212,16 @@
     color: var(--fg);
     margin-top: 16px;
     font-family: 'Indie Flower', cursive;
-    font-size: 22px;
+    font-size: 26px;
     font-weight: 400;
+    /* fixed box: the page below never moves while the letters change fonts */
+    height: 44px;
+    margin-bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    overflow: visible;
     cursor: pointer;
     transition: font-weight 0.15s ease-out;
   }
@@ -224,6 +232,7 @@
   #who-is-toast .wl {
     display: inline-block;
     white-space: pre;
+    line-height: 1;
   }
 
   #newest-release {
@@ -1521,7 +1530,7 @@
     </span>
   </a>
 
-  <p id="who-is-toast">who is toast</p>
+  <p id="who-is-toast">Toast</p>
 
   <div id="submit-box">
     <div id="blocked-msg"></div>
@@ -1958,7 +1967,7 @@
 
   // Hover animation: every letter flips through random fonts, then lands on Indie Flower.
   // It plays once per visit to the main page (going to submissions and back re-arms it).
-  const WHO_FONTS = ['Pacifico', 'Bangers', 'Press Start 2P', 'Special Elite', 'Permanent Marker', 'Orbitron', 'Creepster', 'Lobster', 'Righteous', 'Caveat', 'Poppins'];
+  const WHO_FONTS = ['Barrio', 'Silkscreen', 'Bruno Ace SC', 'Libre Barcode 39 Text', 'Rubik Iso', 'Frijole', 'Palette Mosaic'];
   const whoLetters = [];
   let whoPlayed = false;
   let whoTimers = [];
@@ -1978,7 +1987,7 @@
   // warm the fonts up so the first hover doesn't wait for them
   if (document.fonts && document.fonts.load) {
     window.addEventListener('load', function () {
-      WHO_FONTS.concat(['Indie Flower']).forEach(function (f) { document.fonts.load('22px "' + f + '"').catch(function () {}); });
+      WHO_FONTS.concat(['Indie Flower']).forEach(function (f) { document.fonts.load('26px "' + f + '"').catch(function () {}); });
     });
   }
   function resetWhoAnim() {
@@ -1993,15 +2002,22 @@
     if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     whoLetters.forEach(function (l, i) {
       if (l.textContent.trim() === '') return;
-      const stopAt = 450 + i * 90;
+      const total = 1800 + i * 170;                    // each letter settles a little after the one before it
       let last = '';
+      // how long to wait before the next flip: fast from the start, a blur in the middle,
+      // then slows right down so the last flips are almost lazy
+      function gap(t) {
+        const late = 420 * Math.pow(Math.max(0, (t - 0.45) / 0.55), 2.4);   // fast from the very first flip, slows only at the end
+        return 26 + late;
+      }
       function flip(elapsed) {
-        if (elapsed >= stopAt) { l.style.fontFamily = ''; return; }   // lands on Indie Flower
+        if (elapsed >= total) { l.style.fontFamily = ''; return; }   // lands on Indie Flower
         let f;
         do { f = WHO_FONTS[Math.floor(Math.random() * WHO_FONTS.length)]; } while (f === last);
         last = f;
         l.style.fontFamily = '"' + f + '", cursive';
-        whoTimers.push(setTimeout(function () { flip(elapsed + 55); }, 55));
+        const d = gap(elapsed / total);
+        whoTimers.push(setTimeout(function () { flip(elapsed + d); }, d));
       }
       flip(0);
     });
