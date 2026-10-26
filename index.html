@@ -30,6 +30,8 @@
     --shadow-soft: rgba(0, 0, 0, 0.6);
     --shadow-strong: rgba(0, 0, 0, 0.7);
     --wave-off: #3a3a3a;
+    --up: 22, 163, 74;
+    --down: 220, 38, 38;
   }
   :root[data-theme="light"] {
     color-scheme: light;
@@ -54,28 +56,8 @@
     --shadow-soft: rgba(0, 0, 0, 0.14);
     --shadow-strong: rgba(0, 0, 0, 0.2);
     --wave-off: #d2d2d8;
-  }
-  /* the submission cards keep the dark look in light mode too */
-  :root[data-theme="light"] .submission {
-    --bg: #000000;
-    --surface: #111111;
-    --surface2: #1a1a1a;
-    --surface3: #222222;
-    --surface-hover: #262626;
-    --border: #333333;
-    --border2: #555555;
-    --fg: #ffffff;
-    --fg2: #b3b3b3;
-    --fg3: #777777;
-    --accent: #ffffff;
-    --accent-hover: #e6e6e6;
-    --on-accent: #000000;
-    --warn: #ffc107;
-    --warn-glow: rgba(255, 193, 7, 0.25);
-    --glow: rgba(255, 255, 255, 0.1);
-    --shadow-soft: rgba(0, 0, 0, 0.6);
-    --shadow-strong: rgba(0, 0, 0, 0.7);
-    color: #ffffff;   /* text inside inherits this, not the page's dark text */
+    --up: 120, 214, 165;      /* soft mint */
+    --down: 244, 134, 140;    /* soft rose */
   }
   /* smooth colour change when the theme is switched */
   html.theme-anim, html.theme-anim *, html.theme-anim *::before, html.theme-anim *::after {
@@ -108,16 +90,17 @@
   #settings-btn:hover { background: var(--surface-hover); border-color: var(--border2); }
   #settings-btn svg { width: 20px; height: 20px; transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
   #settings.open #settings-btn svg { transform: rotate(90deg); }
-  #settings-btn.has-pending::after {
-    content: '';
-    position: absolute;
-    top: 1px;
-    right: 1px;
-    width: 9px;
-    height: 9px;
-    border-radius: 50%;
-    background: var(--warn);
-    border: 2px solid var(--bg);
+  /* admin: something is waiting for review, the whole gear lights up yellow */
+  #settings-btn.has-pending {
+    background: #ffc107;
+    border-color: #ffc107;
+    color: #1a1100;
+    animation: gearGlow 2s ease-in-out infinite;
+  }
+  #settings-btn.has-pending:hover { background: #ffc107; filter: brightness(1.08); }
+  @keyframes gearGlow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.45), 0 0 8px rgba(255, 193, 7, 0.4); }
+    50% { box-shadow: 0 0 0 6px rgba(255, 193, 7, 0), 0 0 22px rgba(255, 193, 7, 0.9); }
   }
   #settings-panel {
     position: absolute;
@@ -742,8 +725,8 @@
   }
 
   /* eased fade (many stops) so there is no visible hard edge */
-  .glow.green { background: linear-gradient(to top, rgba(22, 163, 74, 1) 0%, rgba(22, 163, 74, 0.738) calc(var(--h) * 0.19), rgba(22, 163, 74, 0.541) calc(var(--h) * 0.34), rgba(22, 163, 74, 0.382) calc(var(--h) * 0.47), rgba(22, 163, 74, 0.278) calc(var(--h) * 0.565), rgba(22, 163, 74, 0.194) calc(var(--h) * 0.65), rgba(22, 163, 74, 0.126) calc(var(--h) * 0.73), rgba(22, 163, 74, 0.075) calc(var(--h) * 0.802), rgba(22, 163, 74, 0.042) calc(var(--h) * 0.861), rgba(22, 163, 74, 0.021) calc(var(--h) * 0.91), rgba(22, 163, 74, 0.008) calc(var(--h) * 0.952), rgba(22, 163, 74, 0.003) calc(var(--h) * 0.982), rgba(22, 163, 74, 0) var(--h)); }
-  .glow.red   { background: linear-gradient(to top, rgba(220, 38, 38, 1) 0%, rgba(220, 38, 38, 0.738) calc(var(--h) * 0.19), rgba(220, 38, 38, 0.541) calc(var(--h) * 0.34), rgba(220, 38, 38, 0.382) calc(var(--h) * 0.47), rgba(220, 38, 38, 0.278) calc(var(--h) * 0.565), rgba(220, 38, 38, 0.194) calc(var(--h) * 0.65), rgba(220, 38, 38, 0.126) calc(var(--h) * 0.73), rgba(220, 38, 38, 0.075) calc(var(--h) * 0.802), rgba(220, 38, 38, 0.042) calc(var(--h) * 0.861), rgba(220, 38, 38, 0.021) calc(var(--h) * 0.91), rgba(220, 38, 38, 0.008) calc(var(--h) * 0.952), rgba(220, 38, 38, 0.003) calc(var(--h) * 0.982), rgba(220, 38, 38, 0) var(--h)); }
+  .glow.green { background: linear-gradient(to top, rgba(var(--up), 1) 0%, rgba(var(--up), 0.738) calc(var(--h) * 0.19), rgba(var(--up), 0.541) calc(var(--h) * 0.34), rgba(var(--up), 0.382) calc(var(--h) * 0.47), rgba(var(--up), 0.278) calc(var(--h) * 0.565), rgba(var(--up), 0.194) calc(var(--h) * 0.65), rgba(var(--up), 0.126) calc(var(--h) * 0.73), rgba(var(--up), 0.075) calc(var(--h) * 0.802), rgba(var(--up), 0.042) calc(var(--h) * 0.861), rgba(var(--up), 0.021) calc(var(--h) * 0.91), rgba(var(--up), 0.008) calc(var(--h) * 0.952), rgba(var(--up), 0.003) calc(var(--h) * 0.982), rgba(var(--up), 0) var(--h)); }
+  .glow.red   { background: linear-gradient(to top, rgba(var(--down), 1) 0%, rgba(var(--down), 0.738) calc(var(--h) * 0.19), rgba(var(--down), 0.541) calc(var(--h) * 0.34), rgba(var(--down), 0.382) calc(var(--h) * 0.47), rgba(var(--down), 0.278) calc(var(--h) * 0.565), rgba(var(--down), 0.194) calc(var(--h) * 0.65), rgba(var(--down), 0.126) calc(var(--h) * 0.73), rgba(var(--down), 0.075) calc(var(--h) * 0.802), rgba(var(--down), 0.042) calc(var(--h) * 0.861), rgba(var(--down), 0.021) calc(var(--h) * 0.91), rgba(var(--down), 0.008) calc(var(--h) * 0.952), rgba(var(--down), 0.003) calc(var(--h) * 0.982), rgba(var(--down), 0) var(--h)); }
 
   /* ---------- LEFT: how many people interacted ---------- */
   .stats-col {
@@ -2426,7 +2409,7 @@
 
   // white -> red as the heart total gets closer to the goal
   function heartColor(p) {
-    const base = 255;   // white -> red (the cards are dark in both themes)
+    const base = document.documentElement.getAttribute('data-theme') === 'light' ? 70 : 255;   // white (or dark grey) -> red
     const r = Math.round(base + (255 - base) * p);
     const g = Math.round(base - (base - 45) * p);
     const b = Math.round(base - (base - 85) * p);
