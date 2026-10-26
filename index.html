@@ -190,49 +190,14 @@
     min-height: 100vh;
   }
 
-  /* both logos sit on top of each other; the dark-mode one fades into the inverted one in light mode */
-  #logo-stack {
-    position: relative;
-    display: block;
-    width: 100px;
-    transition: transform 0.1s ease-out;
-  }
-  #logo-stack img {
-    display: block;
-    width: 100px;
-    transition: opacity 0.6s ease;
-  }
-  #logo-stack #soundcloud-img-inv {
-    position: absolute;
-    top: 0;
-    left: 0;
-    opacity: 0;
-  }
-  :root[data-theme="light"] #logo-stack #soundcloud-img { opacity: 0; }
-  :root[data-theme="light"] #logo-stack #soundcloud-img-inv { opacity: 1; }
-
-  #logo-stack.clicked {
-    transform: scale(1.1);
-    transition: transform 0.1s ease-out;
-  }
-
-  #logo-stack.reset {
-    transform: scale(1);
-    transition: transform 0.4s ease-out;
-  }
-
-  #soundcloud-link:hover #logo-stack {
-    transform: scale(1.05);
-  }
-
   #who-is-toast {
     color: var(--fg);
-    margin-top: 16px;
+    margin-top: 0;
     font-family: 'Indie Flower', cursive;
-    font-size: 26px;
+    font-size: 56px;
     font-weight: 400;
     /* fixed box: the page below never moves while the letters change fonts */
-    height: 44px;
+    height: 72px;
     margin-bottom: 0;
     display: flex;
     align-items: center;
@@ -300,8 +265,8 @@
   /* ---------- SUBMIT BOX ---------- */
   #submit-box {
     position: relative;
-    top: 44px;               /* sits lower, without moving anything else */
-    margin-top: 40px;
+    top: 0;
+    margin-top: 24px;
     width: 300px;
     max-width: 85vw;
     text-align: center;
@@ -1657,13 +1622,6 @@
 
 <!-- ====== MAIN PAGE ====== -->
 <div id="main-view">
-  <a href="https://soundcloud.com/toast_03" target="_blank" rel="noopener noreferrer" id="soundcloud-link">
-    <span id="logo-stack">
-      <img src="soundcloudicon.png" alt="SoundCloud" id="soundcloud-img">
-      <img src="scinv.png" alt="" aria-hidden="true" id="soundcloud-img-inv">
-    </span>
-  </a>
-
   <p id="who-is-toast">Toast</p>
 
   <div id="submit-box">
@@ -2089,25 +2047,6 @@
   }, true);
 
   /* ---------- Existing logo + "who is toast" behavior ---------- */
-  const link = document.getElementById('soundcloud-link');
-  const img = document.getElementById('logo-stack');
-
-  link.addEventListener('click', function (e) {
-    e.preventDefault();
-
-    img.classList.remove('reset');
-    img.classList.add('clicked');
-
-    setTimeout(() => {
-      img.classList.remove('clicked');
-      img.classList.add('reset');
-    }, 100);
-
-    setTimeout(() => {
-      window.open(link.href, '_blank', 'noopener,noreferrer');
-    }, 500);
-  });
-
   const toastText = document.getElementById('who-is-toast');
 
   // Hover animation: every letter flips through random fonts, then lands on Indie Flower.
