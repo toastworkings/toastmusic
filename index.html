@@ -2256,8 +2256,10 @@
     });
   });
 
-  toastText.addEventListener('click', function () {
-    window.open('https://linktr.ee/toastW', '_blank', 'noopener,noreferrer');
+  // clicking "Toast" opens the subsite (toastmusic.online/toast/)
+  toastText.addEventListener('click', function (e) {
+    if (e.ctrlKey || e.metaKey) window.open('toast/', '_blank');
+    else window.location.href = 'toast/';
   });
 
   /* ---------- Storage layer ---------- */
