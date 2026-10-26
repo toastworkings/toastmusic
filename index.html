@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>toast</title>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&family=Indie+Flower&family=Pacifico&family=Bangers&family=Press+Start+2P&family=Special+Elite&family=Permanent+Marker&family=Orbitron:wght@700&family=Creepster&family=Lobster&family=Righteous&family=Caveat:wght@700&display=swap" rel="stylesheet">
 <style>
   /* ---------- THEME (dark is the default, light is a full second palette) ---------- */
   :root {
@@ -211,7 +211,8 @@
   #who-is-toast {
     color: var(--fg);
     margin-top: 16px;
-    font-size: 18px;
+    font-family: 'Indie Flower', cursive;
+    font-size: 22px;
     font-weight: 400;
     cursor: pointer;
     transition: font-weight 0.15s ease-out;
@@ -219,6 +220,10 @@
 
   #who-is-toast:hover {
     font-weight: 700;
+  }
+  #who-is-toast .wl {
+    display: inline-block;
+    white-space: pre;
   }
 
   #newest-release {
@@ -326,7 +331,7 @@
 
   #char-count,
   #comment-char-count {
-    font-size: 12px;
+    font-size: 10px;
     color: var(--fg3);
   }
 
@@ -357,11 +362,68 @@
     color: var(--fg2);
   }
 
+  /* the little (i) under the box; the tip shows on hover */
+  #info-wrap {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    margin-top: 2px;
+  }
+  #info-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    background: none;
+    color: var(--fg3);
+    border: 1px solid var(--border2);
+    border-radius: 50%;
+    font-family: 'Poppins', sans-serif;
+    font-size: 12px;
+    font-style: italic;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    transition: color 0.15s ease-out, border-color 0.15s ease-out, background 0.15s ease-out;
+  }
+  #info-wrap:hover #info-btn,
+  #info-wrap.open #info-btn,
+  #info-btn:focus-visible {
+    color: var(--fg);
+    border-color: var(--fg2);
+    background: var(--surface2);
+  }
   #submit-hint {
-    margin-top: 14px;
+    position: absolute;
+    top: 30px;
+    left: 50%;
+    width: 270px;
+    max-width: calc(100vw - 40px);
+    box-sizing: border-box;
+    padding: 10px 12px;
+    background: var(--surface);
+    color: var(--fg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 6px 22px var(--shadow-soft);
     font-size: 12px;
     line-height: 1.5;
-    color: var(--fg3);
+    text-align: center;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateX(-50%) translateY(-4px);
+    transition: opacity 0.2s ease-out, transform 0.2s ease-out, visibility 0.2s;
+    z-index: 5;
+  }
+  #info-wrap:hover #submit-hint,
+  #info-wrap.open #submit-hint,
+  #info-btn:focus-visible + #submit-hint {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
   }
 
   #submit-text:disabled { opacity: 0.6; }
@@ -1470,7 +1532,10 @@
       <button id="submit-btn" type="button">Submit</button>
     </div>
     <div id="submit-status"></div>
-    <div id="submit-hint">mind you, you can type in ANY idea you want, such as "Make a Sample pack", "Release an album!", "Create a drumkit!" etc.</div>
+    <div id="info-wrap">
+      <button id="info-btn" type="button" aria-label="more info" aria-describedby="submit-hint">i</button>
+      <div id="submit-hint" role="tooltip">mind you, you can type in ANY idea you want, such as "Make a Sample pack", "Release an album!", "Create a drumkit!" etc.</div>
+    </div>
   </div>
 </div>
 
@@ -1890,6 +1955,58 @@
   });
 
   const toastText = document.getElementById('who-is-toast');
+
+  // Hover animation: every letter flips through random fonts, then lands on Indie Flower.
+  // It plays once per visit to the main page (going to submissions and back re-arms it).
+  const WHO_FONTS = ['Pacifico', 'Bangers', 'Press Start 2P', 'Special Elite', 'Permanent Marker', 'Orbitron', 'Creepster', 'Lobster', 'Righteous', 'Caveat', 'Poppins'];
+  const whoLetters = [];
+  let whoPlayed = false;
+  let whoTimers = [];
+  (function splitWho() {
+    const txt = toastText.textContent;
+    toastText.setAttribute('aria-label', txt);
+    toastText.textContent = '';
+    txt.split('').forEach(function (ch) {
+      const sp = document.createElement('span');
+      sp.className = 'wl';
+      sp.setAttribute('aria-hidden', 'true');
+      sp.textContent = ch;
+      toastText.appendChild(sp);
+      whoLetters.push(sp);
+    });
+  })();
+  // warm the fonts up so the first hover doesn't wait for them
+  if (document.fonts && document.fonts.load) {
+    window.addEventListener('load', function () {
+      WHO_FONTS.concat(['Indie Flower']).forEach(function (f) { document.fonts.load('22px "' + f + '"').catch(function () {}); });
+    });
+  }
+  function resetWhoAnim() {
+    whoTimers.forEach(clearTimeout);
+    whoTimers = [];
+    whoLetters.forEach(function (l) { l.style.fontFamily = ''; });
+    whoPlayed = false;
+  }
+  toastText.addEventListener('mouseenter', function () {
+    if (whoPlayed) return;
+    whoPlayed = true;
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    whoLetters.forEach(function (l, i) {
+      if (l.textContent.trim() === '') return;
+      const stopAt = 450 + i * 90;
+      let last = '';
+      function flip(elapsed) {
+        if (elapsed >= stopAt) { l.style.fontFamily = ''; return; }   // lands on Indie Flower
+        let f;
+        do { f = WHO_FONTS[Math.floor(Math.random() * WHO_FONTS.length)]; } while (f === last);
+        last = f;
+        l.style.fontFamily = '"' + f + '", cursive';
+        whoTimers.push(setTimeout(function () { flip(elapsed + 55); }, 55));
+      }
+      flip(0);
+    });
+  });
+
   toastText.addEventListener('click', function () {
     window.open('https://linktr.ee/toastW', '_blank', 'noopener,noreferrer');
   });
@@ -3113,6 +3230,7 @@
 
   function showMain() {
     if (rolling && rollBack) return;
+    resetWhoAnim();
     rollToken++;
     rolling = false;
     resetRollStyles();
@@ -4467,6 +4585,16 @@
     document.head.appendChild(sc);
   }
   window.addEventListener('load', function () { setupFileMode(); setTimeout(loadNewestRelease, 600); });
+
+  /* ---------- Info icon under the submit box (tap to open on phones) ---------- */
+  const infoWrap = document.getElementById('info-wrap');
+  document.getElementById('info-btn').addEventListener('click', function (e) {
+    e.stopPropagation();
+    infoWrap.classList.toggle('open');
+  });
+  document.addEventListener('click', function (e) {
+    if (!infoWrap.contains(e.target)) infoWrap.classList.remove('open');
+  });
 
   /* ---------- Settings (gear) + dark / light theme ---------- */
   const settingsEl = document.getElementById('settings');
