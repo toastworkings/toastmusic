@@ -2148,8 +2148,7 @@
     if (!submitBoxEl.classList.contains('open')) downHint.classList.toggle('alt');
   }, 700);
 
-  // Party emotes fly out of the title and fade away (like the HYPE hearts).
-  // Hovering the title stops them smoothly: no new ones start, the ones in the air finish their flight.
+  // Party emotes fly out of the title and fade away (like the HYPE hearts), for one second each time you hover it.
   const EMOTES = ['\uD83E\uDD73', '\u2728', '\uD83C\uDF89', '\uD83C\uDF8A'];   // 🥳 ✨ 🎉 🎊
   const emoteReduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   let emoteRate = 1;
@@ -2171,12 +2170,18 @@
     ], { duration: 1500 + Math.random() * 1100, easing: 'cubic-bezier(0.2, 0.7, 0.3, 1)' });
     a.onfinish = a.oncancel = function () { el.remove(); };
   }
-  if (!emoteReduce && submitLabelEl.animate) {
-    setInterval(function () {
-      const calm = submitHover || submitBoxEl.classList.contains('open') || mainView.hidden || document.hidden;
-      emoteRate += ((calm ? 0 : 1) - emoteRate) * 0.12;                 // eases to a stop / eases back in
-      if (Math.random() < emoteRate * 0.38) spawnEmote();
-    }, 110);
+  // one short burst (about a second) every time you hover the title
+  let emoteBurstTimer = null;
+  function emoteBurst() {
+    if (emoteReduce || !submitLabelEl.animate) return;
+    clearInterval(emoteBurstTimer);
+    const t0 = performance.now();
+    spawnEmote();
+    emoteBurstTimer = setInterval(function () {
+      if (performance.now() - t0 >= 1000) { clearInterval(emoteBurstTimer); return; }   // stops after one second
+      spawnEmote();
+      if (Math.random() < 0.5) spawnEmote();
+    }, 70);
   }
 
   // the submit form rolls out under the title when you hover near it, and rolls back 2 seconds after you leave
@@ -2196,7 +2201,7 @@
   function openSubmit() {
     clearTimeout(submitCloseT);
     if (document.getElementById('release-zone').matches(':hover') || document.getElementById('release-panel').classList.contains('open')) return;
-    if (!submitBoxEl.classList.contains('open')) flashLabel();   // the rainbow starts as it rolls out
+    if (!submitBoxEl.classList.contains('open')) { flashLabel(); emoteBurst(); }   // the rainbow + the emotes start as it rolls out
     submitBoxEl.classList.add('open');
   }
   function scheduleSubmitClose() {
