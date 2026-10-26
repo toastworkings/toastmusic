@@ -64,6 +64,23 @@
     transition: background-color 0.35s ease, color 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease !important;
   }
 
+  /* ---------- SIDE GIFS (pop up at the edges and fade away) ---------- */
+  .side-gif {
+    position: fixed;
+    z-index: 4;
+    width: clamp(90px, 10vw, 150px);
+    height: auto;
+    opacity: 0;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-select: none;
+    transition: opacity 0.7s ease, transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .side-gif.left { left: 2vw; transform: translateX(-30px) scale(0.94); }
+  .side-gif.right { right: 2vw; transform: translateX(30px) scale(0.94); }
+  .side-gif.show { opacity: 1; transform: none; }
+  @media (max-width: 760px) { .side-gif { display: none; } }
+
   /* ---------- SETTINGS (gear, top right) ---------- */
   #settings {
     position: fixed;
@@ -4822,6 +4839,67 @@
     if (!infoWrap.contains(e.target)) infoWrap.classList.remove('open');
   });
 
+  /* ---------- Side gifs: j1 / j2 (d = dark mode, l = light mode) ---------- */
+  const GIF_NAMES = ['j1', 'j2'];
+  const gifOk = {};                                      // remembers files that failed to load
+  let gifEl = null;
+  let gifName = '';
+  let gifTimer = null;
+  const gifReduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function gifSrc(name) { return name + (document.documentElement.getAttribute('data-theme') === 'light' ? 'l' : 'd') + '.gif'; }
+
+  function nextGif(delay) {
+    clearTimeout(gifTimer);
+    gifTimer = setTimeout(showSideGif, delay);
+  }
+
+  function showSideGif() {
+    if (document.hidden || gifEl) { nextGif(4000); return; }
+    const name = GIF_NAMES[Math.floor(Math.random() * GIF_NAMES.length)];
+    if (gifOk[gifSrc(name)] === false) { nextGif(8000); return; }
+    const left = Math.random() < 0.5;
+    const el = document.createElement('img');
+    el.className = 'side-gif ' + (left ? 'left' : 'right');
+    el.alt = '';
+    el.setAttribute('aria-hidden', 'true');
+    // keep clear of the gear and the "!" on the right
+    const top = left ? 14 + Math.random() * 62 : 56 + Math.random() * 24;
+    el.style.top = top + '%';
+    const src = gifSrc(name);
+    el.onerror = function () {
+      gifOk[src] = false;
+      el.remove();
+      if (gifEl === el) { gifEl = null; gifName = ''; }
+      nextGif(8000);
+    };
+    el.onload = function () {
+      gifOk[src] = true;
+      requestAnimationFrame(function () { requestAnimationFrame(function () { el.classList.add('show'); }); });
+      const stay = 3500 + Math.random() * 2500;
+      setTimeout(function () {
+        el.classList.remove('show');                    // fades away
+        setTimeout(function () {
+          el.remove();
+          if (gifEl === el) { gifEl = null; gifName = ''; }
+          nextGif(6000 + Math.random() * 9000);
+        }, 1000);
+      }, stay);
+    };
+    gifEl = el;
+    gifName = name;
+    el.src = src;
+    document.body.appendChild(el);
+  }
+
+  if (!gifReduce) {
+    // warm both versions up quietly so they are ready when needed
+    window.addEventListener('load', function () {
+      GIF_NAMES.forEach(function (n) { ['d', 'l'].forEach(function (m) { const im = new Image(); im.src = n + m + '.gif'; }); });
+      nextGif(4000 + Math.random() * 4000);
+    });
+  }
+
   /* ---------- Settings (gear) + dark / light theme ---------- */
   const settingsEl = document.getElementById('settings');
   const settingsBtn = document.getElementById('settings-btn');
@@ -4841,6 +4919,7 @@
       b.classList.toggle('active', b.dataset.themeSet === mode);
     });
     waveColors = null;                               // the waveform re-reads its colours
+    if (gifEl && gifName) gifEl.src = gifSrc(gifName);   // a gif that is on screen swaps to the other version
     currentList.forEach(function (s) { if (s._els) paintHeart(s); });
     drawWave();
   }
