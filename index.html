@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>toast</title>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&family=Indie+Flower&family=Barrio&family=Silkscreen&family=Bruno+Ace+SC&family=Libre+Barcode+39+Text&family=Rubik+Iso&family=Frijole&family=Palette+Mosaic&family=Yuyu&family=Yuyu+Short&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&family=Indie+Flower&family=Barrio&family=Silkscreen&family=Bruno+Ace+SC&family=Libre+Barcode+39+Text&family=Rubik+Iso&family=Frijole&family=Palette+Mosaic&family=Yuyu&family=Yuyu+Short&family=Tiny5&display=swap" rel="stylesheet">
 <style>
   /* ---------- THEME (dark is the default, light is a full second palette) ---------- */
   :root {
@@ -283,6 +283,7 @@
   /* ---------- SUBMIT BOX ---------- */
   #submit-box {
     position: relative;
+    top: 44px;               /* sits lower, without moving anything else */
     margin-top: 40px;
     width: 300px;
     max-width: 85vw;
@@ -673,10 +674,10 @@
     position: absolute;
     left: 50%;
     bottom: 0;
-    width: min(600px, calc(100vw - 20px));
+    width: min(470px, calc(100vw - 20px));
     box-sizing: border-box;
-    transform: translateX(-50%) translateY(calc(100% - 52px));
-    padding: 22px 14px 14px;
+    transform: translateX(-50%) translateY(calc(100% - 40px));
+    padding: 16px 14px 12px;
     color: var(--fg);
     background: linear-gradient(to top, var(--bg) 78%, var(--bg-0));
     font-family: 'Poppins', sans-serif;
@@ -692,19 +693,32 @@
   #release-label {
     display: block;
     width: 100%;
-    height: 30px;
+    height: 24px;
     padding: 0;
     background: none;
     border: none;
     color: var(--fg);
-    font-family: inherit;
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    text-transform: uppercase;
+    font-family: 'Silkscreen', 'Poppins', sans-serif;
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: 1px;
     text-align: center;
     cursor: pointer;
   }
+  /* the caption sways gently, a few degrees each way */
+  #release-label-text {
+    display: inline-block;
+    transform-origin: 50% 60%;
+    animation: relSway 3.2s ease-in-out infinite;
+  }
+  @keyframes relSway {
+    0%, 100% { transform: rotate(-3deg); }
+    50% { transform: rotate(3deg); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #release-label-text { animation: none; }
+  }
+
   #release-body {
     opacity: 0;
     transition: opacity 0.4s ease-out 0.05s;
@@ -752,13 +766,14 @@
     color: var(--fg3);
     margin-top: 2px;
   }
-  #release-open { color: var(--fg3); text-decoration: underline; cursor: pointer; background: none; border: none; padding: 0; font: inherit; }
+  #release-open { color: var(--fg3); text-decoration: underline; cursor: pointer; background: none; border: none; padding: 0; }
+  #release-time, #release-open { font-family: 'Tiny5', 'Poppins', sans-serif; font-size: 13px; letter-spacing: 0.5px; }
   #release-open:hover { color: var(--fg); }
   #release-wave {
     display: block;
     width: 100%;
-    height: 76px;
-    margin-top: 10px;
+    height: 50px;
+    margin-top: 8px;
     cursor: pointer;
   }
 
@@ -1760,14 +1775,14 @@
 <!-- ====== NEWEST RELEASE PLAYER ====== -->
 <div id="release-zone">
   <div id="release-panel">
-    <button id="release-label" type="button" aria-label="show or hide the newest release player">newest release</button>
+    <button id="release-label" type="button" aria-label="show or hide the newest release player"><span id="release-label-text">&#9835; Newest release &#9834;</span></button>
     <div id="release-body">
     <div id="release-main">
       <img id="release-art" alt="" hidden>
       <button id="release-play" type="button" aria-label="play a snippet">&#9654;</button>
       <div id="release-info">
         <div id="release-title">loading...</div>
-        <div id="release-sub"><span id="release-time">30s preview</span><button id="release-open" type="button">open on SoundCloud</button></div>
+        <div id="release-sub"><span id="release-time">preview</span><button id="release-open" type="button">open on SoundCloud</button></div>
       </div>
     </div>
     <canvas id="release-wave"></canvas>
@@ -2097,8 +2112,15 @@
   function submitKeepOpen() {
     return submitHover || submitBoxEl.contains(document.activeElement) || !!pendingSend;
   }
+  function forceCloseSubmit() {                     // used when the newest-release player rolls out
+    submitHover = false;
+    clearTimeout(submitCloseT);
+    if (submitBoxEl.contains(document.activeElement) && document.activeElement.blur) document.activeElement.blur();
+    submitBoxEl.classList.remove('open');
+  }
   function openSubmit() {
     clearTimeout(submitCloseT);
+    if (document.getElementById('release-zone').matches(':hover') || document.getElementById('release-panel').classList.contains('open')) return;
     if (!submitBoxEl.classList.contains('open')) flashLabel();   // the rainbow starts as it rolls out
     submitBoxEl.classList.add('open');
   }
@@ -4277,8 +4299,12 @@
   // phones have no hover, so tapping the label opens / closes it there
   const relCanHover = !!(window.matchMedia && window.matchMedia('(hover: hover)').matches);
   document.getElementById('release-label').addEventListener('click', function () {
-    if (!relCanHover) relPanel.classList.toggle('open');
+    if (!relCanHover) {
+      relPanel.classList.toggle('open');
+      if (relPanel.classList.contains('open')) forceCloseSubmit();
+    }
   });
+  document.getElementById('release-zone').addEventListener('mouseenter', forceCloseSubmit);
   // buttons keep focus after a click, so let go of it: the player rolls back when the mouse leaves
   relPanel.addEventListener('click', function (e) {
     const b = e.target.closest && e.target.closest('button');
@@ -4404,9 +4430,13 @@
     for (let i = 0; i < count; i++) {
       if (i >= winA && i <= winB) continue;
       const bh = Math.max(3, sampleAt(i, count) * h * 0.94);
+      const xc = i * step + barW / 2;
+      const edge = Math.min(xc, w - xc) / (w * 0.24);                 // 0 at the very edge, 1 a bit inward
+      relCtx.globalAlpha = Math.max(0.05, Math.min(1, edge));          // less visible toward the edges
       relCtx.fillStyle = getWaveColors().off;
       relCtx.fillRect(i * step, mid - bh / 2, barW, bh);
     }
+    relCtx.globalAlpha = 1;
 
     // inside the preview: an equalizer. sub / bass on the left, high frequencies on the right,
     // blue (cold) on the left to red (warm) on the right.
@@ -4494,7 +4524,7 @@
     relPlaying = on;
     relPlay.innerHTML = on ? '&#10074;&#10074;' : '&#9654;';
     relPanel.classList.toggle('playing', on);
-    if (!on) relTime.textContent = '30s preview';
+    if (!on) relTime.textContent = 'preview';
     kick();
   }
 
@@ -4532,7 +4562,7 @@
       relPos = relStart;
       barHue = []; barBoost = [];
     }
-    if (relPlaying) relTime.textContent = fmtTime(relPos - relStart) + ' / 0:30 preview';
+    if (relPlaying) relTime.textContent = fmtTime(relPos - relStart) + ' / 0:30';
   }
 
   let relNeedSeek = true;     // the player itself still sits at 0:00
