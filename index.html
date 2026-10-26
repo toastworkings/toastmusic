@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>toast</title>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&family=Indie+Flower&family=Barrio&family=Silkscreen&family=Bruno+Ace+SC&family=Libre+Barcode+39+Text&family=Rubik+Iso&family=Frijole&family=Palette+Mosaic&family=Yuyu&family=Yuyu+Short&family=Tiny5&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&family=Indie+Flower&family=Barrio&family=Silkscreen&family=Bruno+Ace+SC&family=Libre+Barcode+39+Text&family=Rubik+Iso&family=Frijole&family=Palette+Mosaic&family=Yuyu&family=Yuyu+Short&family=Tiny5&family=Atma:wght@600&display=swap" rel="stylesheet">
 <style>
   /* ---------- THEME (dark is the default, light is a full second palette) ---------- */
   :root {
@@ -327,12 +327,24 @@
     display: flex;
     justify-content: center;
     white-space: nowrap;
-    font-size: 16px;
-    letter-spacing: 2.5px;
+    font-family: 'Atma', 'Poppins', sans-serif;
+    font-weight: 600;
+    font-size: 19px;
+    letter-spacing: 2px;
     text-transform: uppercase;
     color: var(--fg);
     margin-bottom: 6px;
     cursor: default;
+  }
+  /* party emotes that fly out of the title */
+  .emote {
+    position: absolute;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-select: none;
+    line-height: 1;
+    z-index: 3;
+    will-change: transform, opacity;
   }
   /* invisible area around the title: hovering near it counts */
   #submit-label::before {
@@ -2103,6 +2115,37 @@
   setInterval(function () {
     if (!submitBoxEl.classList.contains('open')) downHint.classList.toggle('alt');
   }, 700);
+
+  // Party emotes fly out of the title and fade away (like the HYPE hearts).
+  // Hovering the title stops them smoothly: no new ones start, the ones in the air finish their flight.
+  const EMOTES = ['\uD83E\uDD73', '\u2728', '\uD83C\uDF89', '\uD83C\uDF8A'];   // 🥳 ✨ 🎉 🎊
+  const emoteReduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let emoteRate = 1;
+  function spawnEmote() {
+    const el = document.createElement('span');
+    el.className = 'emote';
+    el.textContent = EMOTES[Math.floor(Math.random() * EMOTES.length)];
+    el.style.left = (8 + Math.random() * 84) + '%';
+    el.style.top = (20 + Math.random() * 30) + '%';
+    el.style.fontSize = (15 + Math.random() * 11) + 'px';
+    submitLabelEl.appendChild(el);
+    const dx = (Math.random() - 0.5) * 150;
+    const dy = -(35 + Math.random() * 85);
+    const rot = (Math.random() - 0.5) * 120;
+    const a = el.animate([
+      { transform: 'translate(0, 0) scale(0.4) rotate(0deg)', opacity: 0 },
+      { opacity: 1, offset: 0.18 },
+      { transform: 'translate(' + dx + 'px, ' + dy + 'px) scale(1.15) rotate(' + rot + 'deg)', opacity: 0 }
+    ], { duration: 1500 + Math.random() * 1100, easing: 'cubic-bezier(0.2, 0.7, 0.3, 1)' });
+    a.onfinish = a.oncancel = function () { el.remove(); };
+  }
+  if (!emoteReduce && submitLabelEl.animate) {
+    setInterval(function () {
+      const calm = submitHover || submitBoxEl.classList.contains('open') || mainView.hidden || document.hidden;
+      emoteRate += ((calm ? 0 : 1) - emoteRate) * 0.12;                 // eases to a stop / eases back in
+      if (Math.random() < emoteRate * 0.38) spawnEmote();
+    }, 110);
+  }
 
   // the submit form rolls out under the title when you hover near it, and rolls back 2 seconds after you leave
   const submitBoxEl = document.getElementById('submit-box');
