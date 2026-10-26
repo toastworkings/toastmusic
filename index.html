@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>toast</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&family=Indie+Flower&family=Barrio&family=Silkscreen&family=Bruno+Ace+SC&family=Libre+Barcode+39+Text&family=Rubik+Iso&family=Frijole&family=Palette+Mosaic&family=Single+Day&family=Just+Me+Again+Down+Here&family=Tiny5&family=Atma:wght@600&display=swap" rel="stylesheet">
+<script>
+  // intro: hide everything until the opening animation is set up (skipped for reduced motion)
+  try { if (!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) document.documentElement.classList.add('intro'); } catch (e) {}
+</script>
+<style>
+  html.intro body > * { visibility: hidden; }
+</style>
 <style>
   /* ---------- THEME (dark is the default, light is a full second palette) ---------- */
   :root {
@@ -4981,5 +4988,71 @@
   });
 </script>
 
+<script>
+/* ---------- Opening animation ---------- */
+(function () {
+  var root = document.documentElement;
+  function done() { root.classList.remove('intro'); }
+  try {
+    var toast = document.getElementById('who-is-toast');
+    var box = document.getElementById('submit-box');
+    if (!root.classList.contains('intro') || !toast || !box || !toast.animate) { done(); return; }
+
+    var tr = toast.getBoundingClientRect();
+    var br = box.getBoundingClientRect();
+    var dy = window.innerHeight / 2 - (tr.top + tr.height / 2);   // moves Toast to the screen centre
+    var gap = br.top - tr.top;                                     // where the box finally sits under Toast
+    var HOLD = 400, MOVE = 900, EASE = 'cubic-bezier(0.65, 0, 0.25, 1)';
+
+    // Toast alone, centred
+    toast.style.position = 'relative';
+    toast.style.zIndex = '2';
+    var tA = toast.animate(
+      [{ transform: 'translateY(' + dy + 'px)' }, { transform: 'translateY(' + dy + 'px)', offset: HOLD / (HOLD + MOVE) }, { transform: 'translateY(0)' }],
+      { duration: HOLD + MOVE, easing: 'linear', fill: 'both' });
+    // keep the middle segment eased
+    tA.cancel();
+    tA = toast.animate(
+      [{ transform: 'translateY(' + dy + 'px)', easing: 'linear', offset: 0 },
+       { transform: 'translateY(' + dy + 'px)', easing: EASE, offset: HOLD / (HOLD + MOVE) },
+       { transform: 'translateY(0)', offset: 1 }],
+      { duration: HOLD + MOVE, fill: 'both' });
+
+    // the submissions block is pulled out from under Toast
+    box.style.pointerEvents = 'none';
+    var hint = document.getElementById('down-hint');
+    var start = dy - gap + 24;
+    var bA = box.animate(
+      [{ transform: 'translateY(' + start + 'px)', opacity: 0, clipPath: 'inset(0 -200px 100% -200px)', easing: 'linear', offset: 0 },
+       { transform: 'translateY(' + start + 'px)', opacity: 0, clipPath: 'inset(0 -200px 100% -200px)', easing: EASE, offset: HOLD / (HOLD + MOVE) },
+       { transform: 'translateY(0)', opacity: 1, clipPath: 'inset(0 -200px -400px -200px)', offset: 1 }],
+      { duration: HOLD + MOVE, fill: 'both' });
+    // the little "down here" hint waits for the slow fade below
+    if (hint) hint.style.opacity = '0';
+
+    // everything else fades in slowly, starting after one second
+    var FADE_DELAY = 1000, FADE = 1400;
+    var late = ['tab-zone', 'release-zone', 'settings', 'notice'].map(function (id) { return document.getElementById(id); }).filter(Boolean);
+    late.forEach(function (el) {
+      el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE, delay: FADE_DELAY, easing: 'ease-in-out', fill: 'both' })
+        .onfinish = function () { this.cancel(); };
+    });
+    if (hint) {
+      hint.style.opacity = '';
+      hint.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE, delay: FADE_DELAY, easing: 'ease-in-out', fill: 'both' })
+        .onfinish = function () { this.cancel(); };
+    }
+
+    var finish = function () {
+      [tA, bA].forEach(function (a) { try { a.cancel(); } catch (e) {} });
+      toast.style.position = '';
+      toast.style.zIndex = '';
+      box.style.pointerEvents = '';
+    };
+    bA.finished.then(finish, finish);
+    done();   // animations are already applied, so nothing flashes
+  } catch (e) { done(); }
+})();
+</script>
 </body>
 </html>
