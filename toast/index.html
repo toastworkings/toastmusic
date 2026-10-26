@@ -4,104 +4,136 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Toast</title>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&family=Indie+Flower&display=swap" rel="stylesheet">
-<script>
-  // same dark / light choice as the main page
-  (function () {
-    try {
-      if (localStorage.getItem('toast_theme') === 'light') document.documentElement.setAttribute('data-theme', 'light');
-    } catch (e) {}
-  })();
-</script>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <style>
   :root {
-    color-scheme: dark;
-    --bg: #000000;
-    --surface: #111111;
-    --surface-hover: #1a1a1a;
-    --border: #333333;
-    --border2: #555555;
-    --fg: #ffffff;
-    --fg2: #b3b3b3;
-    --fg3: #777777;
-  }
-  :root[data-theme="light"] {
-    color-scheme: light;
-    --bg: #ffffff;
-    --surface: #f6f6f7;
-    --surface-hover: #efeff1;
-    --border: #d9d9de;
-    --border2: #a6a6ae;
-    --fg: #141416;
-    --fg2: #46464d;
-    --fg3: #6d6d76;
+    --page: #4d2842;
+    --card: #74245e;
+    --blob: #5a1b4a;
+    --btn: #2b0c27;
+    --btn-hover: #3a1535;
   }
   * { box-sizing: border-box; }
-  html { background: var(--bg); }
+  html { background: var(--page); }
   body {
     margin: 0;
     min-height: 100vh;
-    background: var(--bg);
-    color: var(--fg);
+    background: var(--page);
+    color: #fff;
     font-family: 'Poppins', sans-serif;
     display: flex;
-    flex-direction: column;
-    align-items: center;
+    justify-content: center;
   }
-  .back {
-    position: fixed;
-    top: 16px;
-    left: 16px;
-    display: inline-flex;
-    align-items: center;
-    padding: 8px 16px;
-    background: var(--surface);
-    color: var(--fg);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    font-size: 14px;
-    text-decoration: none;
-    transition: background 0.15s ease-out, border-color 0.15s ease-out;
-  }
-  .back:hover { background: var(--surface-hover); border-color: var(--border2); }
-
-  main { width: 100%; max-width: 640px; padding: 110px 20px 60px; text-align: center; }
-  h1 {
-    margin: 0 0 8px;
-    font-family: 'Indie Flower', cursive;
-    font-size: 54px;
-    font-weight: 400;
-  }
-  .sub { margin: 0 0 44px; color: var(--fg2); font-size: 14px; }
 
   .card {
-    margin-bottom: 14px;
-    padding: 22px 20px;
-    text-align: left;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
+    position: relative;
+    width: 100%;
+    max-width: 580px;
+    min-height: 100vh;
+    margin-top: 38px;
+    padding: 56px 28px 60px;
+    background-color: var(--card);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 580 900' preserveAspectRatio='xMidYMid slice'%3E%3Cg fill='%235a1b4a'%3E%3Cpath d='M0 90C60 60 120 100 150 170S130 300 70 330 0 400 0 400Z'/%3E%3Cpath d='M330 0C350 60 420 70 470 120S560 230 580 200V0Z'/%3E%3Cpath d='M580 330C520 310 470 360 480 430S560 520 580 540Z'/%3E%3Cpath d='M0 560C70 520 150 560 170 640S110 790 0 780Z'/%3E%3Cpath d='M300 900C310 820 380 780 450 800S560 760 580 700V900Z'/%3E%3Cellipse cx='250' cy='470' rx='80' ry='55'/%3E%3Cellipse cx='400' cy='640' rx='60' ry='90'/%3E%3C/g%3E%3C/svg%3E");
+    background-size: cover;
+    background-position: center top;
+    border-radius: 28px 28px 0 0;
+    text-align: center;
   }
-  .card h2 { margin: 0 0 6px; font-size: 15px; }
-  .card p { margin: 0; color: var(--fg3); font-size: 13px; line-height: 1.6; }
+
+  .pfp {
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #fff;
+    display: block;
+    margin: 0 auto;
+  }
+  .handle { margin: 16px 0 0; font-size: 24px; font-weight: 700; display: none; }
+  .bio { margin: 14px 0 0; font-size: 16px; font-weight: 600; }
+
+  .socials {
+    margin: 22px 0 36px;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .socials a {
+    color: #fff;
+    font-size: 30px;
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    transition: transform 0.18s ease-out, opacity 0.18s;
+  }
+  .socials a:hover { transform: scale(1.18); }
+
+  .links { display: flex; flex-direction: column; gap: 14px; }
+  .link {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 64px;
+    padding: 8px 64px;
+    background: var(--btn);
+    color: #fff;
+    border-radius: 32px;
+    font-size: 16px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: transform 0.18s ease-out, background 0.18s ease-out;
+  }
+  .link:hover { background: var(--btn-hover); transform: scale(1.025); }
+  .link img {
+    position: absolute;
+    left: 8px;
+    top: 8px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  @media (max-width: 620px) {
+    .card { margin-top: 0; border-radius: 0; padding-top: 48px; }
+  }
 </style>
 </head>
 <body>
 
-<a class="back" href="../">&larr; back</a>
+<main class="card">
+  <img class="pfp" src="pfp.png" alt="Toast">
 
-<main>
-  <h1>Toast</h1>
-  <p class="sub">more coming soon</p>
+  <p class="bio">VGM artist!!</p>
 
-  <!-- Add your own sections here. Copy one of these cards for each thing. -->
-  <div class="card">
-    <h2>Section one</h2>
-    <p>Work in progress.</p>
-  </div>
-  <div class="card">
-    <h2>Section two</h2>
-    <p>w.i.p.</p>
+  <nav class="socials">
+    <a href="https://open.spotify.com/artist/1LVkmxubewjyPnMDTd29on" target="_blank" rel="noopener noreferrer" aria-label="Spotify"><i class="fa-brands fa-spotify"></i></a>
+    <a href="https://www.youtube.com/@ToastSC" target="_blank" rel="noopener noreferrer" aria-label="YouTube"><i class="fa-brands fa-youtube"></i></a>
+    <a href="https://soundcloud.com/toast_03" target="_blank" rel="noopener noreferrer" aria-label="SoundCloud"><i class="fa-brands fa-soundcloud"></i></a>
+    <a href="https://www.tiktok.com/@toastsians" target="_blank" rel="noopener noreferrer" aria-label="TikTok"><i class="fa-brands fa-tiktok"></i></a>
+    <a href="https://music.apple.com/us/artist/toastw/1863226687" target="_blank" rel="noopener noreferrer" aria-label="Apple Music"><i class="fa-brands fa-itunes-note"></i></a>
+    <a href="https://discord.com/invite/nGv53p79jp" target="_blank" rel="noopener noreferrer" aria-label="Discord"><i class="fa-brands fa-discord"></i></a>
+  </nav>
+
+  <div class="links">
+    <a class="link" href="https://soundcloud.com/toast_03" target="_blank" rel="noopener noreferrer">
+      <img src="SCI.jpg" alt=""><span>Soundcloud</span>
+    </a>
+    <a class="link" href="https://open.spotify.com/artist/1LVkmxubewjyPnMDTd29on" target="_blank" rel="noopener noreferrer">
+      <img src="SICON.webp" alt=""><span>Spotify</span>
+    </a>
+    <a class="link" href="https://www.tiktok.com/@toastsians" target="_blank" rel="noopener noreferrer">
+      <img src="TICON.png" alt=""><span>Tiktok</span>
+    </a>
+    <a class="link" href="https://www.youtube.com/@ToastSC" target="_blank" rel="noopener noreferrer">
+      <img src="YCON.png" alt=""><span>YouTube</span>
+    </a>
   </div>
 </main>
 
