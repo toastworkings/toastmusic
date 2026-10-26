@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Toast</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&family=Indie+Flower&display=swap" rel="stylesheet">
+<script>
+  // same dark / light choice as the main page
+  (function () {
+    try {
+      if (localStorage.getItem('toast_theme') === 'light') document.documentElement.setAttribute('data-theme', 'light');
+    } catch (e) {}
+  })();
+</script>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #000000;
+    --surface: #111111;
+    --surface-hover: #1a1a1a;
+    --border: #333333;
+    --border2: #555555;
+    --fg: #ffffff;
+    --fg2: #b3b3b3;
+    --fg3: #777777;
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --bg: #ffffff;
+    --surface: #f6f6f7;
+    --surface-hover: #efeff1;
+    --border: #d9d9de;
+    --border2: #a6a6ae;
+    --fg: #141416;
+    --fg2: #46464d;
+    --fg3: #6d6d76;
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--bg); }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: 'Poppins', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .back {
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 16px;
+    background: var(--surface);
+    color: var(--fg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    text-decoration: none;
+    transition: background 0.15s ease-out, border-color 0.15s ease-out;
+  }
+  .back:hover { background: var(--surface-hover); border-color: var(--border2); }
+
+  main { width: 100%; max-width: 640px; padding: 110px 20px 60px; text-align: center; }
+  h1 {
+    margin: 0 0 8px;
+    font-family: 'Indie Flower', cursive;
+    font-size: 54px;
+    font-weight: 400;
+  }
+  .sub { margin: 0 0 44px; color: var(--fg2); font-size: 14px; }
+
+  .card {
+    margin-bottom: 14px;
+    padding: 22px 20px;
+    text-align: left;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+  .card h2 { margin: 0 0 6px; font-size: 15px; }
+  .card p { margin: 0; color: var(--fg3); font-size: 13px; line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<a class="back" href="../">&larr; back</a>
+
+<main>
+  <h1>Toast</h1>
+  <p class="sub">more coming soon</p>
+
+  <!-- Add your own sections here. Copy one of these cards for each thing. -->
+  <div class="card">
+    <h2>Section one</h2>
+    <p>This is the new page at toastmusic.online/toast. Replace this text with whatever you want to put here.</p>
+  </div>
+  <div class="card">
+    <h2>Section two</h2>
+    <p>Add as many sections as you like.</p>
+  </div>
+</main>
+
+</body>
+</html>
