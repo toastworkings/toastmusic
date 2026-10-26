@@ -462,11 +462,15 @@
   }
 
   /* the little (i) under the box; the tip shows on hover */
-  #info-wrap {
-    position: relative;
+  #submit-row { position: relative; }          /* the tip is placed against the whole row */
+  #submit-actions {
     display: flex;
-    justify-content: center;
-    margin-top: 2px;
+    align-items: center;
+    gap: 8px;
+  }
+  #info-wrap {
+    display: flex;
+    align-items: center;
   }
   #info-btn {
     display: flex;
@@ -496,8 +500,8 @@
   }
   #submit-hint {
     position: absolute;
-    top: 30px;
-    left: 50%;
+    bottom: calc(100% + 8px);        /* opens upward, away from the release caption */
+    right: 0;
     width: 270px;
     max-width: calc(100vw - 40px);
     box-sizing: border-box;
@@ -513,7 +517,7 @@
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
-    transform: translateX(-50%) translateY(-4px);
+    transform: translateY(4px);
     transition: opacity 0.2s ease-out, transform 0.2s ease-out, visibility 0.2s;
     z-index: 5;
   }
@@ -522,7 +526,7 @@
   #info-btn:focus-visible + #submit-hint {
     opacity: 1;
     visibility: visible;
-    transform: translateX(-50%) translateY(0);
+    transform: translateY(0);
   }
 
   #submit-text:disabled { opacity: 0.6; }
@@ -1650,13 +1654,15 @@
     <textarea id="submit-text" maxlength="280" placeholder="TYPE IN YOUR SUBMISSION FOR THE 2K FOLLOWERS"></textarea>
     <div id="submit-row">
       <span id="char-count">0 / 280</span>
-      <button id="submit-btn" type="button">Submit</button>
+      <span id="submit-actions">
+        <span id="info-wrap">
+          <button id="info-btn" type="button" aria-label="more info" aria-describedby="submit-hint">i</button>
+          <span id="submit-hint" role="tooltip">mind you, you can type in ANY idea you want, such as "Make a Sample pack", "Release an album!", "Create a drumkit!" etc.</span>
+        </span>
+        <button id="submit-btn" type="button">Submit</button>
+      </span>
     </div>
     <div id="submit-status"></div>
-    <div id="info-wrap">
-      <button id="info-btn" type="button" aria-label="more info" aria-describedby="submit-hint">i</button>
-      <div id="submit-hint" role="tooltip">mind you, you can type in ANY idea you want, such as "Make a Sample pack", "Release an album!", "Create a drumkit!" etc.</div>
-    </div>
     </div>
   </div>
 </div>
