@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>toast</title>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&family=Indie+Flower&family=Barrio&family=Silkscreen&family=Bruno+Ace+SC&family=Libre+Barcode+39+Text&family=Rubik+Iso&family=Frijole&family=Palette+Mosaic&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&family=Indie+Flower&family=Barrio&family=Silkscreen&family=Bruno+Ace+SC&family=Libre+Barcode+39+Text&family=Rubik+Iso&family=Frijole&family=Palette+Mosaic&family=Yuyu&family=Yuyu+Short&display=swap" rel="stylesheet">
 <style>
   /* ---------- THEME (dark is the default, light is a full second palette) ---------- */
   :root {
@@ -339,6 +339,33 @@
     position: absolute;
     inset: -18px -60px -8px;
   }
+  /* "down here!!" points at the hidden form; the two fonts swap every 0.7 seconds */
+  #submit-label-text { position: relative; }
+  #down-hint {
+    position: absolute;
+    right: 100%;
+    top: 50%;
+    margin-right: 16px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+    color: var(--fg2);
+    font-family: 'Yuyu', cursive;
+    font-size: 17px;
+    letter-spacing: 0.5px;
+    text-transform: none;
+    transform: translateY(-50%) rotate(-4deg);
+    transition: opacity 0.35s ease;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  #down-hint.alt { font-family: 'Yuyu Short', cursive; }
+  #down-hint svg { flex: none; margin-top: 8px; }
+  #submit-box.open #down-hint { opacity: 0; }
+  @media (max-width: 700px) { #down-hint { display: none; } }
+
   /* white normally; flashes through the rainbow for 1 second as the form rolls out */
   #submit-label.flash { animation: labelRainbow 1s linear; }
   @keyframes labelRainbow {
@@ -1584,7 +1611,14 @@
 
   <div id="submit-box">
     <div id="blocked-msg"></div>
-    <div id="submit-label">2K FOLLOWERS SUBMISSIONS EVENT</div>
+    <div id="submit-label">
+      <span id="submit-label-text">2K FOLLOWERS SUBMISSIONS EVENT
+        <span id="down-hint" aria-hidden="true">
+          <svg viewBox="0 0 24 26" width="20" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4 C 11 3 17 8 17 21"></path><path d="M12 16 L17 22 L22 16"></path></svg>
+          <span id="down-hint-text">down here!!</span>
+        </span>
+      </span>
+    </div>
     <div id="submit-body">
     <textarea id="submit-text" maxlength="280" placeholder="TYPE IN YOUR SUBMISSION FOR THE 2K FOLLOWERS"></textarea>
     <div id="submit-row">
@@ -2049,6 +2083,12 @@
     void submitLabelEl.offsetWidth;
     submitLabelEl.classList.add('flash');
   }
+  // "down here!!" switches between Yuyu and Yuyu Short every 0.7 seconds
+  const downHint = document.getElementById('down-hint');
+  setInterval(function () {
+    if (!submitBoxEl.classList.contains('open')) downHint.classList.toggle('alt');
+  }, 700);
+
   // the submit form rolls out under the title when you hover near it, and rolls back 2 seconds after you leave
   const submitBoxEl = document.getElementById('submit-box');
   const canHoverSubmit = !!(window.matchMedia && window.matchMedia('(hover: hover)').matches);
