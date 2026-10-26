@@ -70,6 +70,8 @@
   @keyframes drift { to { background-position: 400px 400px; } }
   @media (prefers-reduced-motion: reduce) { .card::before { animation: none; } }
 
+  .roll { opacity: 0; }
+
   .pfp {
     width: 96px;
     height: 96px;
@@ -197,11 +199,11 @@
 </div>
 
 <main class="card">
-  <img class="pfp" src="pfp.png" alt="Toast">
+  <img class="pfp roll" src="pfp.png" alt="Toast">
 
-  <p class="bio">VGM artist!!</p>
+  <p class="bio roll">VGM artist!!</p>
 
-  <nav class="socials">
+  <nav class="socials roll">
     <a href="https://open.spotify.com/artist/1LVkmxubewjyPnMDTd29on" target="_blank" rel="noopener noreferrer" aria-label="Spotify"><i class="fa-brands fa-spotify"></i></a>
     <a href="https://www.youtube.com/@ToastSC" target="_blank" rel="noopener noreferrer" aria-label="YouTube"><i class="fa-brands fa-youtube"></i></a>
     <a href="https://soundcloud.com/toast_03" target="_blank" rel="noopener noreferrer" aria-label="SoundCloud"><i class="fa-brands fa-soundcloud"></i></a>
@@ -211,16 +213,16 @@
   </nav>
 
   <div class="links">
-    <a class="link" href="https://soundcloud.com/toast_03" target="_blank" rel="noopener noreferrer">
+    <a class="link roll" href="https://soundcloud.com/toast_03" target="_blank" rel="noopener noreferrer">
       <img src="SCI.jpg" alt=""><span>Soundcloud</span>
     </a>
-    <a class="link" href="https://open.spotify.com/artist/1LVkmxubewjyPnMDTd29on" target="_blank" rel="noopener noreferrer">
+    <a class="link roll" href="https://open.spotify.com/artist/1LVkmxubewjyPnMDTd29on" target="_blank" rel="noopener noreferrer">
       <img src="SICON.png" alt=""><span>Spotify</span>
     </a>
-    <a class="link" href="https://www.tiktok.com/@toastsians" target="_blank" rel="noopener noreferrer">
+    <a class="link roll" href="https://www.tiktok.com/@toastsians" target="_blank" rel="noopener noreferrer">
       <img src="TICON.png" alt=""><span>Tiktok</span>
     </a>
-    <a class="link" href="https://www.youtube.com/@ToastSC" target="_blank" rel="noopener noreferrer">
+    <a class="link roll" href="https://www.youtube.com/@ToastSC" target="_blank" rel="noopener noreferrer">
       <img src="YCON.png" alt=""><span>YouTube</span>
     </a>
   </div>
@@ -239,6 +241,22 @@
   document.getElementById('t-light').onclick = function () { setTheme('light'); };
   document.getElementById('gear').onclick = function (e) { e.stopPropagation(); panel.classList.toggle('open'); };
   document.addEventListener('click', function (e) { if (!panel.contains(e.target)) panel.classList.remove('open'); });
+
+  /* everything rolls up from the bottom of the page, top items fastest, lower ones slower */
+  (function () {
+    var items = document.querySelectorAll('.roll');
+    var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var ease = 'cubic-bezier(0.22, 1, 0.36, 1)';
+    items.forEach(function (el, i) {
+      if (reduce) { el.style.opacity = 1; return; }
+      var dist = Math.max(window.innerHeight - el.getBoundingClientRect().top, 200) + 40;
+      var a = el.animate([
+        { transform: 'translateY(' + dist + 'px)', opacity: 0, easing: ease },
+        { transform: 'translateY(0)', opacity: 1 }
+      ], { duration: 800 + i * 220, delay: i * 40, easing: 'linear', fill: 'both' });
+      a.onfinish = function () { el.style.opacity = 1; a.cancel(); };
+    });
+  })();
 </script>
 </body>
 </html>
