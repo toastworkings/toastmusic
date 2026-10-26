@@ -6,9 +6,27 @@
 <title>Toast</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script>
+  (function () {
+    try { if (localStorage.getItem('toast_theme') === 'light') document.documentElement.setAttribute('data-theme', 'light'); } catch (e) {}
+  })();
+</script>
 <style>
   :root {
-    --page: #4d2842;
+    --page: #000000;
+    --ui-bg: #151515;
+    --ui-border: #333333;
+    --ui-fg: #ffffff;
+    --ui-hover: #222222;
+  }
+  :root[data-theme="light"] {
+    --page: #ffffff;
+    --ui-bg: #f3f3f5;
+    --ui-border: #d4d4da;
+    --ui-fg: #141416;
+    --ui-hover: #e6e6ea;
+  }
+  :root {
     --card: #74245e;
     --blob: #5a1b4a;
     --btn: #2b0c27;
@@ -34,12 +52,23 @@
     margin-top: 38px;
     padding: 56px 28px 60px;
     background-color: var(--card);
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 580 900' preserveAspectRatio='xMidYMid slice'%3E%3Cg fill='%235a1b4a'%3E%3Cpath d='M0 90C60 60 120 100 150 170S130 300 70 330 0 400 0 400Z'/%3E%3Cpath d='M330 0C350 60 420 70 470 120S560 230 580 200V0Z'/%3E%3Cpath d='M580 330C520 310 470 360 480 430S560 520 580 540Z'/%3E%3Cpath d='M0 560C70 520 150 560 170 640S110 790 0 780Z'/%3E%3Cpath d='M300 900C310 820 380 780 450 800S560 760 580 700V900Z'/%3E%3Cellipse cx='250' cy='470' rx='80' ry='55'/%3E%3Cellipse cx='400' cy='640' rx='60' ry='90'/%3E%3C/g%3E%3C/svg%3E");
-    background-size: cover;
-    background-position: center top;
+    overflow: hidden;
     border-radius: 28px 28px 0 0;
     text-align: center;
   }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 400 400'><g fill='%235a1b4a'><g id='a'><ellipse cx='70' cy='60' rx='62' ry='46'/><ellipse cx='260' cy='130' rx='48' ry='70'/><ellipse cx='120' cy='260' rx='70' ry='50'/><ellipse cx='320' cy='320' rx='56' ry='62'/><circle cx='200' cy='20' r='30'/><circle cx='370' cy='210' r='26'/><circle cx='30' cy='370' r='34'/></g><use href='%23a' x='-400'/><use href='%23a' x='400'/><use href='%23a' y='-400'/><use href='%23a' y='400'/><use href='%23a' x='-400' y='-400'/><use href='%23a' x='400' y='-400'/><use href='%23a' x='-400' y='400'/><use href='%23a' x='400' y='400'/></g></svg>");
+    background-size: 400px 400px;
+    animation: drift 70s linear infinite;
+    pointer-events: none;
+  }
+  .card > * { position: relative; }
+  @keyframes drift { to { background-position: 400px 400px; } }
+  @media (prefers-reduced-motion: reduce) { .card::before { animation: none; } }
 
   .pfp {
     width: 96px;
@@ -100,12 +129,72 @@
     object-fit: cover;
   }
 
+  .ui-btn {
+    position: fixed;
+    top: 16px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 0 14px;
+    background: var(--ui-bg);
+    color: var(--ui-fg);
+    border: 1px solid var(--ui-border);
+    border-radius: 10px;
+    font: 600 14px 'Poppins', sans-serif;
+    text-decoration: none;
+    cursor: pointer;
+    z-index: 20;
+    transition: background 0.15s ease-out;
+  }
+  .ui-btn:hover { background: var(--ui-hover); }
+  #back { left: 16px; }
+  #gear { right: 16px; width: 40px; padding: 0; font-size: 18px; }
+  #gear i { transition: transform 0.4s ease-out; }
+  #gear:hover i { transform: rotate(60deg); }
+  #panel {
+    position: fixed;
+    top: 64px;
+    right: 16px;
+    width: 190px;
+    padding: 12px;
+    background: var(--ui-bg);
+    color: var(--ui-fg);
+    border: 1px solid var(--ui-border);
+    border-radius: 12px;
+    z-index: 20;
+    display: none;
+    font-size: 13px;
+  }
+  #panel.open { display: block; }
+  #panel .lbl { margin: 0 0 8px; opacity: 0.7; }
+  .seg { display: flex; gap: 6px; }
+  .seg button {
+    flex: 1;
+    padding: 8px 0;
+    background: transparent;
+    color: var(--ui-fg);
+    border: 1px solid var(--ui-border);
+    border-radius: 8px;
+    font: 600 13px 'Poppins', sans-serif;
+    cursor: pointer;
+  }
+  .seg button.on { background: var(--ui-fg); color: var(--page); }
+
   @media (max-width: 620px) {
     .card { margin-top: 0; border-radius: 0; padding-top: 48px; }
   }
 </style>
 </head>
 <body>
+
+<a id="back" class="ui-btn" href="../"><i class="fa-solid fa-arrow-left"></i> back</a>
+<button id="gear" class="ui-btn" aria-label="Settings"><i class="fa-solid fa-gear"></i></button>
+<div id="panel">
+  <p class="lbl">Theme</p>
+  <div class="seg"><button id="t-dark">Dark</button><button id="t-light">Light</button></div>
+</div>
 
 <main class="card">
   <img class="pfp" src="pfp.png" alt="Toast">
@@ -137,5 +226,19 @@
   </div>
 </main>
 
+<script>
+  var root = document.documentElement, panel = document.getElementById('panel');
+  function setTheme(t) {
+    if (t === 'light') root.setAttribute('data-theme', 'light'); else root.removeAttribute('data-theme');
+    document.getElementById('t-dark').classList.toggle('on', t !== 'light');
+    document.getElementById('t-light').classList.toggle('on', t === 'light');
+    try { localStorage.setItem('toast_theme', t); } catch (e) {}
+  }
+  setTheme(root.getAttribute('data-theme') === 'light' ? 'light' : 'dark');
+  document.getElementById('t-dark').onclick = function () { setTheme('dark'); };
+  document.getElementById('t-light').onclick = function () { setTheme('light'); };
+  document.getElementById('gear').onclick = function (e) { e.stopPropagation(); panel.classList.toggle('open'); };
+  document.addEventListener('click', function (e) { if (!panel.contains(e.target)) panel.classList.remove('open'); });
+</script>
 </body>
 </html>
