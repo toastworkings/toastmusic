@@ -3247,6 +3247,8 @@
     subView.style.position = '';
     subView.style.zIndex = '';
     subView.style.overflow = '';
+    subView.style.clipPath = '';
+    commentsView.style.clipPath = '';
     if (mainView.getAnimations) mainView.getAnimations().forEach(function (a) { a.cancel(); });
   }
 
@@ -3269,6 +3271,9 @@
     fromEl.style.left = '0';
     fromEl.style.right = '0';
     fromEl.style.zIndex = '2';
+    // scrolled down: everything above the visible part disappears, so the page
+    // rolls down from exactly where you are and the main page attaches right above it
+    if (fromY > 0) fromEl.style.clipPath = 'inset(' + fromY + 'px -100px 0 -100px)';
     toEl.hidden = false;
     toEl.style.position = 'fixed';
     toEl.style.top = (-toY) + 'px';
@@ -3303,6 +3308,7 @@
         el.style.left = '';
         el.style.right = '';
         el.style.zIndex = '';
+        el.style.clipPath = '';
       });
       rolling = false;
       rollBack = false;
