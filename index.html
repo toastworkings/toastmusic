@@ -978,6 +978,17 @@
     pointer-events: none;
   }
   #tab-zone[hidden] ~ #release-zone { display: none; }
+  /* the fade is a solid colour with a soft-edged mask (not a gradient), so it changes colour together with the page when the theme switches */
+  #release-panel::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background-color: var(--bg);
+    -webkit-mask-image: linear-gradient(to top, #000 78%, transparent);
+    mask-image: linear-gradient(to top, #000 78%, transparent);
+    pointer-events: none;
+  }
   #release-zone::before {            /* the hover strip along the bottom edge */
     content: '';
     position: absolute;
@@ -997,7 +1008,6 @@
     transform: translateX(-50%) translateY(calc(100% - 40px));
     padding: 16px 14px 12px;
     color: var(--fg);
-    background: linear-gradient(to top, var(--bg) 78%, var(--bg-0));
     font-family: 'Poppins', sans-serif;
     transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
     pointer-events: auto;
@@ -5245,7 +5255,24 @@
       b.classList.toggle('active', b.dataset.themeSet === mode);
     });
     waveColors = null;                               // the waveform re-reads its colours
-    if (gifEl && gifName) gifEl.src = gifSrc(gifName);   // a gif that is on screen swaps to the other version
+    if (gifEl && gifName) {                              // a gif that is on screen swaps to the other version, crossfading as the page changes colour
+      const cur = gifEl;
+      const ghost = cur.cloneNode(false);
+      ghost.removeAttribute('src');
+      ghost.onload = ghost.onerror = null;
+      ghost.className = cur.className;
+      ghost.style.cssText = cur.style.cssText + ';pointer-events:none;';
+      ghost.src = cur.src;
+      document.body.appendChild(ghost);
+      cur.src = gifSrc(gifName);
+      if (ghost.animate) {
+        const fade = ghost.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 350, easing: 'ease', fill: 'forwards' });
+        fade.onfinish = function () { ghost.remove(); };
+      } else {
+        setTimeout(function () { ghost.remove(); }, 350);
+      }
+      setTimeout(function () { ghost.remove(); }, 800);
+    }
     currentList.forEach(function (s) { if (s._els) paintHeart(s); });
     drawWave();
   }
