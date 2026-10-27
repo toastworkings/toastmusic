@@ -265,6 +265,34 @@
     color: var(--fg3);
     font-variant-numeric: tabular-nums;
   }
+  .mp-edit {
+    flex: none;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    background: transparent;
+    color: var(--fg3);
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .mp-edit:hover { background: var(--surface-hover); color: var(--fg); }
+  body.is-admin .mp-edit { display: flex; }
+  .mp-input {
+    flex: 1;
+    min-width: 0;
+    padding: 4px 6px;
+    background: var(--bg);
+    color: var(--fg);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    font: 600 13px 'Poppins', sans-serif;
+    outline: none;
+  }
   .mp-empty { padding: 6px 4px; font-size: 12px; color: var(--fg3); }
   @media (max-width: 640px) { #mp-title { display: none; } #mp-vol { width: 64px; } #mp-vol-fill { background-size: 64px 100%; } }
 
@@ -2686,6 +2714,9 @@
     const token = await getToken();
     return fetch(dbBase + '/' + path + '.json' + qs(token), { method: 'DELETE' });
   }
+
+  // lets the music player (a separate script) rename songs when the admin is signed in
+  window.__toastDb = { isAdmin: isAdmin, get: dbGet, put: dbPut };
 
   function validComment(c) {
     return c && typeof c.text === 'string' && !isBlocked(c.text);
@@ -5276,7 +5307,7 @@
   var audio = new Audio();
   audio.preload = 'auto';
   var byId = {};
-  TRACKS.forEach(function (t) { byId[t.id] = t; t.duration = NaN; });
+  TRACKS.forEach(function (t) { byId[t.id] = t; t.duration = NaN; t.base = t.name; });
 
   // lengths: read from the files themselves
   TRACKS.forEach(function (t) {
@@ -5372,11 +5403,11 @@
   });
 
   /* ----- playlist menu (opens on hover) ----- */
-  var closeT = null, dragging = false;
+  var closeT = null, dragging = false, editing = false;
   function open() { clearTimeout(closeT); mp.classList.add('open'); }
   function scheduleClose() {
     clearTimeout(closeT);
-    closeT = setTimeout(function () { if (!dragging) mp.classList.remove('open'); }, 250);
+    closeT = setTimeout(function () { if (!dragging && !editing) mp.classList.remove('open'); }, 250);
   }
   mp.addEventListener('mouseenter', open);
   mp.addEventListener('mouseleave', scheduleClose);
@@ -5386,10 +5417,10 @@
   function rowHTML(t, cls) {
     return '<div class="mp-row ' + cls + '" data-id="' + t.id + '">' +
       '<img class="mp-cover" src="' + t.cover + '" alt="" draggable="false" onerror="this.removeAttribute(\'src\')">' +
-      '<span class="mp-name"></span><span class="mp-time">' + fmt(t.duration) + '</span></div>';
+      '<span class="mp-name"></span><button type="button" class="mp-edit" title="Rename (admin)" aria-label="Rename song">&#9998;</button><span class="mp-time">' + fmt(t.duration) + '</span></div>';
   }
   function render() {
-    if (dragging) return;
+    if (dragging || editing) return;
     var h = '<p class="mp-head">Now playing</p>' + rowHTML(current, 'now');
     h += '<p class="mp-head" style="margin-top:10px">Up next &middot; drag to reorder</p>';
     h += queue.length ? queue.map(function (t) { return rowHTML(t, 'q'); }).join('') : '<p class="mp-empty">Nothing else in the queue</p>';
@@ -5402,7 +5433,7 @@
   // drag a row up or down; the song at the top plays next
   list.addEventListener('pointerdown', function (e) {
     var row = e.target.closest('.mp-row.q');
-    if (!row || e.button > 0) return;
+    if (!row || e.button > 0 || e.target.closest('.mp-edit, .mp-input')) return;
     e.preventDefault();
     dragging = true;
     var startRect = row.getBoundingClientRect();
@@ -5446,8 +5477,60 @@
     place(e.clientY);
   });
 
+  /* ----- admin: rename songs (saved in the shared database, so everyone sees the new names) ----- */
+  function applyNames(map) {
+    TRACKS.forEach(function (t) { t.name = (map && typeof map[t.id] === 'string' && map[t.id]) ? map[t.id] : t.base; });
+    titleEl.textContent = current.name;
+    titleEl.title = current.name;
+    render();
+  }
+  function loadNames() {
+    var db = window.__toastDb;
+    if (!db) return;
+    Promise.resolve(db.get('musicNames', false)).then(applyNames, function () {});
+  }
+  list.addEventListener('click', function (e) {
+    var btn = e.target.closest('.mp-edit');
+    if (!btn) return;
+    var db = window.__toastDb;
+    if (!db || !db.isAdmin()) return;
+    var row = btn.closest('.mp-row');
+    var t = byId[row.dataset.id];
+    var nameEl = row.querySelector('.mp-name');
+    var input = document.createElement('input');
+    input.className = 'mp-input';
+    input.maxLength = 60;
+    input.value = t.name;
+    editing = true;
+    nameEl.replaceWith(input);
+    input.focus(); input.select();
+    var finished = false;
+    function finish(save) {
+      if (finished) return;
+      finished = true;
+      editing = false;
+      var v = input.value.trim().slice(0, 60);
+      if (save && v !== t.name) {
+        t.name = v || t.base;
+        var stored = (v && v !== t.base) ? v : null;      // empty or original = back to the default name
+        Promise.resolve(db.put('musicNames/' + t.id, stored)).catch(function () {});
+      }
+      titleEl.textContent = current.name;
+      titleEl.title = current.name;
+      render();
+      if (!mp.matches(':hover')) scheduleClose();
+    }
+    input.addEventListener('keydown', function (ev) {
+      ev.stopPropagation();
+      if (ev.key === 'Enter') finish(true);
+      else if (ev.key === 'Escape') finish(false);
+    });
+    input.addEventListener('blur', function () { finish(true); });
+  });
+
   applyVolume();
   load(current);
+  loadNames();
   tryPlay();
 })();
 </script>
