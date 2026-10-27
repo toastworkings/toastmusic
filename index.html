@@ -180,7 +180,7 @@
     right: 0;
     bottom: 0;
     height: 150px;
-    z-index: -2;               /* behind the page's content */
+    z-index: 11;               /* over the newest-release tab (10), under the player and menus */
     pointer-events: none;
     opacity: 0;
     transform: translateY(calc(var(--swell, 0) * -22px));
@@ -6051,29 +6051,21 @@
     dropState = on;
     if (!disco) return;
     disco.classList.toggle('show', on);
-    if (on) { ballUntil = 0; if (!ballRunning) { ballRunning = true; requestAnimationFrame(ballLoop); } }
+    if (on) { lastBeat = Math.floor((audio.currentTime - FX.wt4.drop) * BPM / 60) - 1; ballUntil = 0; if (!ballRunning) { ballRunning = true; requestAnimationFrame(ballLoop); } }
     else ballUntil = performance.now() + 1500;
   }
-  // kick detector: a sudden jump in the bass
-  var prevBass = 0, fluxHist = [], lastKick = 0, hueStep = 0;
+  // flashes on the beat: 128 bpm, counted from the drop
+  var BPM = 128, lastBeat = -1, hueStep = 0;
   function kickFlash(now) {
-    if (!anB || !flashEl) return;
-    anB.getByteFrequencyData(freqB);
-    var bass = (freqB[1] + freqB[2] + freqB[3] + freqB[4]) / (4 * 255);
-    var flux = bass - prevBass;
-    prevBass = bass;
-    fluxHist.push(flux); if (fluxHist.length > 90) fluxHist.shift();
-    var m = 0, sd = 0, i;
-    for (i = 0; i < fluxHist.length; i++) m += fluxHist[i];
-    m /= fluxHist.length;
-    for (i = 0; i < fluxHist.length; i++) sd += (fluxHist[i] - m) * (fluxHist[i] - m);
-    sd = Math.sqrt(sd / fluxHist.length);
-    if (flux > m + 1.5 * sd && flux > 0.05 && bass > 0.35 && now - lastKick > 170) {
-      lastKick = now;
-      hueStep = (hueStep + 47) % 360;
-      flashEl.style.filter = 'hue-rotate(' + hueStep + 'deg)';
-      if (flashEl.animate) flashEl.animate([{ opacity: 0.11 }, { opacity: 0 }], { duration: 190, easing: 'ease-out' });
-    }
+    if (!flashEl) return;
+    var beat = Math.floor((audio.currentTime - FX.wt4.drop) * BPM / 60);
+    if (beat === lastBeat) return;
+    var fresh = (beat === lastBeat + 1);                   // a seek just re-syncs, no flash
+    lastBeat = beat;
+    if (!fresh || beat < 0) return;
+    hueStep = (hueStep + 47) % 360;
+    flashEl.style.filter = 'hue-rotate(' + hueStep + 'deg)';
+    if (flashEl.animate) flashEl.animate([{ opacity: 0.11 }, { opacity: 0 }], { duration: 190, easing: 'ease-out' });
   }
 
   /* ===== a different look for each song: things fly in from the sides while it plays ===== */
