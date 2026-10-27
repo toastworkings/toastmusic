@@ -132,9 +132,9 @@
   #viz {
     position: fixed;
     left: 0;
-    bottom: 0;
+    top: 0;
     width: 100%;
-    height: 0;
+    height: 100%;
     z-index: -1;              /* behind the page's content */
     pointer-events: none;
   }
@@ -5731,9 +5731,9 @@
   function resize() {
     W = window.innerWidth; H = window.innerHeight;
     DPR = Math.min(2, window.devicePixelRatio || 1);
-    VH = Math.min(170, Math.round(H * 0.2));
-    if (viz) { viz.width = Math.round(W * DPR); viz.height = Math.round(VH * DPR); viz.style.height = VH + 'px'; }
-    N = Math.max(24, Math.min(110, Math.floor(W / 12)));
+    VH = Math.min(170, Math.round(W * 0.14));          // how far the strips can reach in from the edge
+    if (viz) { viz.width = Math.round(W * DPR); viz.height = Math.round(H * DPR); }
+    N = Math.max(24, Math.min(80, Math.floor(H / 11)));
     bars = new Float32Array(N);
     edges = null;
     S = Math.max(64, Math.min(130, Math.round(W * 0.09)));
@@ -5910,20 +5910,22 @@
       if (!(bars[i] >= 0)) bars[i] = 0;
       if (bars[i] > maxBar) maxBar = bars[i];
     }
-    // draw the strips (white in dark mode, black in light mode; louder = taller and brighter)
+    // draw the strips on both side edges, mirrored (bass at the top, treble at the bottom; louder = longer and brighter)
     if (vg) {
       vg.setTransform(DPR, 0, 0, DPR, 0, 0);
-      vg.clearRect(0, 0, W, VH);
+      vg.clearRect(0, 0, W, H);
       var light = document.documentElement.getAttribute('data-theme') === 'light';
       var rgb = light ? '24,24,28' : '255,255,255';
-      var slot = W / N, bw = Math.max(2, slot * 0.72), rad = Math.min(bw / 2, 4);
+      var slot = H / N, bt = Math.max(2, slot * 0.72), rad = Math.min(bt / 2, 4);
       for (i = 0; i < N; i++) {
-        var h = bars[i] * (VH - 4);
-        if (h < 1) continue;
+        var len = bars[i] * (VH - 4);
+        if (len < 1) continue;
         vg.fillStyle = 'rgba(' + rgb + ',' + (0.22 + 0.78 * Math.min(1, bars[i] * 1.2)).toFixed(3) + ')';
-        var x = i * slot + (slot - bw) / 2;
-        if (vg.roundRect && h > rad * 2) { vg.beginPath(); vg.roundRect(x, VH - h, bw, h, [rad, rad, 0, 0]); vg.fill(); }
-        else vg.fillRect(x, VH - h, bw, h);
+        var y = i * slot + (slot - bt) / 2;
+        if (vg.roundRect && len > rad * 2) {
+          vg.beginPath(); vg.roundRect(0, y, len, bt, [0, rad, rad, 0]); vg.fill();
+          vg.beginPath(); vg.roundRect(W - len, y, len, bt, [rad, 0, 0, rad]); vg.fill();
+        } else { vg.fillRect(0, y, len, bt); vg.fillRect(W - len, y, len, bt); }
       }
     }
     // the toasts float down the left edge, then the right edge, forever (one is half out as the other is half in)
@@ -5933,7 +5935,7 @@
     else toastEls.forEach(function (t) { if (t) { t.style.visibility = 'hidden'; t.style.opacity = '0'; } });
     if (!active && vis < 0.01 && maxBar < 0.004) {
       running = false;
-      if (vg) vg.clearRect(0, 0, W, VH);
+      if (vg) vg.clearRect(0, 0, W, H);
     }
   }
   function userPaused() { return userStop; }
