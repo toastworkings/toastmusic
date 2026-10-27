@@ -141,6 +141,62 @@
   @media (max-width: 600px) { #viz { display: none; } }
 
 
+
+
+  /* ---------- SONG 4 DROP: disco ball + rainbow flashes on the kick ---------- */
+  #disco {
+    position: fixed;
+    top: 0;
+    left: 24%;
+    width: 110px;
+    margin-left: -55px;
+    z-index: 7;
+    pointer-events: none;
+    transform: translateY(-340px);
+    transition: transform 1.4s cubic-bezier(0.3, 1.3, 0.5, 1);
+  }
+  #disco.show { transform: none; }
+  #disco .d-swing { transform-origin: 50% 0; animation: discoSwing 3.8s ease-in-out infinite alternate; }
+  #disco .d-string { width: 2px; height: 130px; margin: 0 auto; background: linear-gradient(#8a8a92, #d8d8e0); }
+  #disco canvas { display: block; width: 110px; height: 110px; filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.35)); }
+  @keyframes discoSwing { from { transform: rotate(-4deg); } to { transform: rotate(4deg); } }
+  #rainbow-flash {
+    position: fixed;
+    inset: 0;
+    z-index: 9;
+    pointer-events: none;
+    opacity: 0;
+    background: linear-gradient(100deg, #ff3b3b, #ffb000, #ffee00, #2bff5a, #00e5ff, #3b6bff, #c43bff, #ff3b9a);
+    mix-blend-mode: screen;
+  }
+  :root[data-theme="light"] #rainbow-flash { mix-blend-mode: multiply; }
+  @media (max-width: 600px) { #disco { display: none; } }
+  @media (prefers-reduced-motion: reduce) { #disco, #rainbow-flash { display: none; } }
+
+  /* ---------- OCEAN (song 3): translucent waves rolling along the bottom ---------- */
+  #ocean {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 150px;
+    z-index: -2;               /* behind the page's content */
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(calc(var(--swell, 0) * -22px));
+    transition: opacity 0.9s ease;
+  }
+  #ocean.show { opacity: 1; }
+  #ocean .ow { position: absolute; left: 0; right: 0; bottom: 0; background-repeat: repeat-x; background-position: 0 100%; }
+  #ocean .o1 { height: 125px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='120' viewBox='0 0 700 120' preserveAspectRatio='none'%3E%3Cpath d='M0 40 C 117 14 233 14 350 40 S 583 66 700 40 L700 120 L0 120 Z' fill='rgba(30,120,210,0.26)'/%3E%3Cpath d='M0 40 C 117 14 233 14 350 40 S 583 66 700 40' fill='none' stroke='rgba(190,230,255,0.55)' stroke-width='2'/%3E%3C/svg%3E"); background-size: 700px 100%; animation: ocean1 17s linear infinite, oceanBob 5.5s ease-in-out infinite alternate; }
+  #ocean .o2 { height: 105px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='500' height='120' viewBox='0 0 500 120' preserveAspectRatio='none'%3E%3Cpath d='M0 40 C 83 20 167 20 250 40 S 417 60 500 40 L500 120 L0 120 Z' fill='rgba(20,150,200,0.22)'/%3E%3Cpath d='M0 40 C 83 20 167 20 250 40 S 417 60 500 40' fill='none' stroke='rgba(190,240,255,0.4)' stroke-width='2'/%3E%3C/svg%3E"); background-size: 500px 100%; animation: ocean2 11s linear infinite, oceanBob 4.2s ease-in-out -1.5s infinite alternate; }
+  #ocean .o3 { height: 145px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='120' viewBox='0 0 900 120' preserveAspectRatio='none'%3E%3Cpath d='M0 40 C 150 10 300 10 450 40 S 750 70 900 40 L900 120 L0 120 Z' fill='rgba(10,90,180,0.2)'/%3E%3Cpath d='M0 40 C 150 10 300 10 450 40 S 750 70 900 40' fill='none' stroke='rgba(170,215,255,0.35)' stroke-width='2'/%3E%3C/svg%3E"); background-size: 900px 100%; animation: ocean3 27s linear infinite, oceanBob 7s ease-in-out -3s infinite alternate; }
+  @keyframes ocean1 { from { background-position-x: 0; } to { background-position-x: 700px; } }
+  @keyframes ocean2 { from { background-position-x: 0; } to { background-position-x: -500px; } }
+  @keyframes ocean3 { from { background-position-x: 0; } to { background-position-x: 900px; } }
+  @keyframes oceanBob { from { transform: translateY(0); } to { transform: translateY(-9px); } }
+  @media (prefers-reduced-motion: reduce) { #ocean { display: none; } }
+
   /* ---------- PER-SONG LOOKS (disc decorations + flying particles) ---------- */
   #mp-disc { transition: opacity 0.4s ease; }
   .deco {
@@ -2134,6 +2190,9 @@
 </div>
 
 <!-- ====== ACCOUNT BAR ====== -->
+<div id="rainbow-flash" aria-hidden="true"></div>
+<div id="disco" aria-hidden="true"><div class="d-swing"><div class="d-string"></div><canvas id="disco-c" width="110" height="110"></canvas></div></div>
+<div id="ocean" aria-hidden="true"><div class="ow o3"></div><div class="ow o2"></div><div class="ow o1"></div></div>
 <canvas id="viz" aria-hidden="true"></canvas>
 <div id="mp" class="paused" aria-label="Music player">
   <button id="mp-disc-btn" type="button" aria-label="Mute or unmute the music" title="Mute / unmute">
@@ -5631,7 +5690,7 @@
   var muted = !!saved.m;
   function save() { try { localStorage.setItem('toast_music', JSON.stringify({ v: level, m: muted })); } catch (e) {} }
 
-  var actx = null, gainN = null, anV = null, graphFailed = false;
+  var actx = null, gainN = null, anV = null, anB = null, graphFailed = false, freqB = null;
   var audio = new Audio();
   audio.preload = 'auto';
   var byId = {};
@@ -5721,6 +5780,7 @@
   }
   function load(track) {
     current = track;
+    try { fxUpdate(); } catch (e) {}
     mp.setAttribute('data-song', track.id);
     audio.src = encodeURI(track.src);
     setTitle(track.name);
@@ -5768,12 +5828,14 @@
       actx = new AC();
       var src = actx.createMediaElementSource(audio);
       anV = actx.createAnalyser(); anV.fftSize = 2048; anV.smoothingTimeConstant = 0.6; anV.minDecibels = -88; anV.maxDecibels = -12;
+      anB = actx.createAnalyser(); anB.fftSize = 1024; anB.smoothingTimeConstant = 0; anB.minDecibels = -90; anB.maxDecibels = -10;
       gainN = actx.createGain();
-      src.connect(anV); src.connect(gainN);
+      src.connect(anV); src.connect(anB); src.connect(gainN);
       gainN.connect(actx.destination);
       freq = new Uint8Array(anV.frequencyBinCount);
+      freqB = new Uint8Array(anB.frequencyBinCount);
     } catch (e) {
-      graphFailed = true; actx = null; gainN = null; anV = null;
+      graphFailed = true; actx = null; gainN = null; anV = null; anB = null;
     }
   }
   audio.addEventListener('play', function () {
@@ -5850,7 +5912,12 @@
     var dt = Math.min(0.1, Math.max(0.001, (now - lastT) / 1000));
     lastT = now;
     var playingNow = !audio.paused && !!anV;
-    var peaky = !!(FX[current.id] && FX[current.id].hits);
+    var cfgNow = FX[current.id];
+    var peaky = !!(cfgNow && (cfgNow.hits || cfgNow.peaky));
+    var hitsOn = !!(cfgNow && cfgNow.hits);
+    var dropOn = !!(cfgNow && cfgNow.drop && playingNow && audio.currentTime >= cfgNow.drop);
+    if (dropOn !== dropState) setDrop(dropOn);
+    if (dropOn) kickFlash(now);
     var maxBar = 0, i;
     if (!tg || tg.length !== N) { tg = new Float32Array(N); ts = new Float32Array(N); }
     if (playingNow) {
@@ -5885,8 +5952,14 @@
       if (!(bars[i] >= 0)) bars[i] = 0;
       if (bars[i] > maxBar) maxBar = bars[i];
     }
+    if (oceanOn) {                                       // the ocean swells with the bass
+      var sw = 0, nb = Math.max(1, Math.floor(N / 5));
+      for (i = 0; i < nb; i++) sw += bars[i];
+      oceanSwell += (sw / nb - oceanSwell) * Math.min(1, dt * 9);
+      ocean.style.setProperty('--swell', oceanSwell.toFixed(3));
+    }
     // an invisible line sits near the maximum length: a strip that reaches it shoots an emote out from that point
-    if (playingNow && peaky) {
+    if (playingNow && hitsOn) {
       if (!hot || hot.length !== N) { hot = new Uint8Array(N); lastHit = new Float64Array(N); }
       for (i = 0; i < N; i++) {
         var bv = bars[i];
@@ -5928,16 +6001,98 @@
   }, 1000);
 
 
+
+  /* ===== song 4, at the drop: a 3D disco ball drops in and the screen flashes rainbow on every kick ===== */
+  var disco = document.getElementById('disco'), discoC = document.getElementById('disco-c');
+  var dctx = discoC ? discoC.getContext('2d') : null;
+  var flashEl = document.getElementById('rainbow-flash');
+  var dropState = false, ballRunning = false, ballUntil = 0;
+  var DDPR = Math.min(2, window.devicePixelRatio || 1);
+  if (discoC) { discoC.width = Math.round(110 * DDPR); discoC.height = Math.round(110 * DDPR); }
+  function drawBall(t) {
+    if (!dctx) return;
+    var c = dctx, S = 110 * DDPR, R = 50 * DDPR, cx = S / 2, cy = S / 2;
+    c.setTransform(1, 0, 0, 1, 0, 0);
+    c.clearRect(0, 0, S, S);
+    var ang = t * 0.0011, tilt = 0.38, ct = Math.cos(tilt), st = Math.sin(tilt);
+    var LB = 10, LS = 20, L = [-0.4, 0.55, 0.73];
+    function P(phi, th) {                                  // a point on the sphere, turned and tilted
+      var x = Math.cos(phi) * Math.cos(th), y = Math.sin(phi), z = Math.cos(phi) * Math.sin(th);
+      return [x, y * ct - z * st, y * st + z * ct];
+    }
+    c.lineJoin = 'round';
+    c.lineWidth = 0.7 * DDPR;
+    c.strokeStyle = 'rgba(0,0,0,0.55)';
+    for (var a = 0; a < LB; a++) {
+      var p1 = -Math.PI / 2 + a * Math.PI / LB, p2 = p1 + Math.PI / LB;
+      for (var b = 0; b < LS; b++) {
+        var t1 = b * 2 * Math.PI / LS + ang, t2 = t1 + 2 * Math.PI / LS;
+        var n = P((p1 + p2) / 2, (t1 + t2) / 2);
+        if (n[2] <= 0.02) continue;                        // the far side is hidden
+        var lam = Math.max(0, n[0] * L[0] + n[1] * L[1] + n[2] * L[2]);
+        var h = Math.sin(a * 12.9898 + b * 78.233 + Math.floor(t / 140) * 3.17) * 43758.5453;
+        h -= Math.floor(h);
+        var v = 70 + 120 * lam + 40 * (h - 0.5);
+        if (h > 0.93) v = 255;                             // a mirror catching the light
+        c.fillStyle = 'rgb(' + (v | 0) + ',' + (v | 0) + ',' + Math.min(255, (v + 18) | 0) + ')';
+        var q = [P(p1, t1), P(p1, t2), P(p2, t2), P(p2, t1)];
+        c.beginPath();
+        for (var k = 0; k < 4; k++) { var X = cx + R * q[k][0], Y = cy - R * q[k][1]; if (k) c.lineTo(X, Y); else c.moveTo(X, Y); }
+        c.closePath(); c.fill(); c.stroke();
+      }
+    }
+  }
+  function ballLoop(t) {
+    drawBall(t);
+    if (dropState || performance.now() < ballUntil) requestAnimationFrame(ballLoop);
+    else ballRunning = false;
+  }
+  function setDrop(on) {
+    dropState = on;
+    if (!disco) return;
+    disco.classList.toggle('show', on);
+    if (on) { ballUntil = 0; if (!ballRunning) { ballRunning = true; requestAnimationFrame(ballLoop); } }
+    else ballUntil = performance.now() + 1500;
+  }
+  // kick detector: a sudden jump in the bass
+  var prevBass = 0, fluxHist = [], lastKick = 0, hueStep = 0;
+  function kickFlash(now) {
+    if (!anB || !flashEl) return;
+    anB.getByteFrequencyData(freqB);
+    var bass = (freqB[1] + freqB[2] + freqB[3] + freqB[4]) / (4 * 255);
+    var flux = bass - prevBass;
+    prevBass = bass;
+    fluxHist.push(flux); if (fluxHist.length > 90) fluxHist.shift();
+    var m = 0, sd = 0, i;
+    for (i = 0; i < fluxHist.length; i++) m += fluxHist[i];
+    m /= fluxHist.length;
+    for (i = 0; i < fluxHist.length; i++) sd += (fluxHist[i] - m) * (fluxHist[i] - m);
+    sd = Math.sqrt(sd / fluxHist.length);
+    if (flux > m + 1.5 * sd && flux > 0.05 && bass > 0.35 && now - lastKick > 170) {
+      lastKick = now;
+      hueStep = (hueStep + 47) % 360;
+      flashEl.style.filter = 'hue-rotate(' + hueStep + 'deg)';
+      if (flashEl.animate) flashEl.animate([{ opacity: 0.11 }, { opacity: 0 }], { duration: 190, easing: 'ease-out' });
+    }
+  }
+
   /* ===== a different look for each song: things fly in from the sides while it plays ===== */
   var FX = {
     wt1: { snow: true, chars: ['❄', '❅', '❆'] },
     wt2: { hits: true, chars: ['💃', '🕺', '🌴', '🦜', '🌺', '🐒', '🌿', '🎸', '🥁', '🌹', '🦋', '🐍'] },
-    wt3: { hits: true, chars: ['🏴‍☠️', '⚓', '🦜', '🗡️', '💰', '🦀', '⛵', '🧭', '☠️', '💎', '🐙'] },
-    wt4: { hits: true, chars: ['🎵', '🎶', '🎼', '⚡', '🌩️', '♪', '♫'] }
+    wt3: { peaky: true, ocean: true, chars: [] },
+    wt4: { hits: true, drop: 14, chars: ['🎵', '🎶', '🎼', '⚡', '🌩️', '♪', '♫'] }
   };
   var fxTimer = null, fxCount = 0;
-  function fxActive() { return !reduceMotion && !audio.paused && !stopping && !!FX[current.id]; }
+  function fxActive() { var c = FX[current.id]; return !reduceMotion && !audio.paused && !stopping && !!(c && c.chars.length); }
+  var ocean = document.getElementById('ocean'), oceanOn = false, oceanSwell = 0;
+  function oceanUpdate() {
+    var c = FX[current.id];
+    oceanOn = !!(ocean && !reduceMotion && c && c.ocean && !audio.paused && !stopping);
+    if (ocean) ocean.classList.toggle('show', oceanOn);
+  }
   function fxUpdate() {
+    oceanUpdate();
     if (fxActive()) { if (!fxTimer) fxTimer = setInterval(fxSpawn, 240); }
     else if (fxTimer) { clearInterval(fxTimer); fxTimer = null; }
   }
