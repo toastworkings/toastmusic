@@ -5618,6 +5618,7 @@
     }, 16);
   }
   function tryPlay(instant) {
+    userStop = false;
     ensureGraph();
     applyVolume();
     var wasStopping = stopping;
@@ -5666,6 +5667,7 @@
   function stopMusic() {      // pauses where it is, so playing again carries on from the same spot
     if (audio.paused || stopping) return;
     stopping = true;
+    userStop = true;
     mp.classList.add('paused');                    // the disc and the wave settle right away
     ramp(audio.playbackRate, MIN_RATE, 800, function (k) { return k * k; }, function () {
       if (!stopping) return;
@@ -5707,7 +5709,7 @@
       var AC = window.AudioContext || window.webkitAudioContext;
       actx = new AC();
       var src = actx.createMediaElementSource(audio);
-      anV = actx.createAnalyser(); anV.fftSize = 2048; anV.smoothingTimeConstant = 0.45; anV.minDecibels = -88; anV.maxDecibels = -12;
+      anV = actx.createAnalyser(); anV.fftSize = 2048; anV.smoothingTimeConstant = 0.6; anV.minDecibels = -88; anV.maxDecibels = -12;
       anB = actx.createAnalyser(); anB.fftSize = 1024; anB.smoothingTimeConstant = 0; anB.minDecibels = -90; anB.maxDecibels = -10;
       gainN = actx.createGain();
       src.connect(anV); src.connect(anB); src.connect(gainN);
@@ -5729,7 +5731,7 @@
   function resize() {
     W = window.innerWidth; H = window.innerHeight;
     DPR = Math.min(2, window.devicePixelRatio || 1);
-    VH = Math.min(300, Math.round(H * 0.36));
+    VH = Math.min(170, Math.round(H * 0.2));
     if (viz) { viz.width = Math.round(W * DPR); viz.height = Math.round(VH * DPR); viz.style.height = VH + 'px'; }
     N = Math.max(24, Math.min(110, Math.floor(W / 12)));
     bars = new Float32Array(N);
@@ -5856,7 +5858,7 @@
   var running = false, lastT = 0, vis = 0, tau = 0;
   function startLoop() {
     if (running || reduceMotion) return;
-    running = true; lastT = performance.now();
+    running = true; lastT = performance.now(); inactiveSince = 0;
     requestAnimationFrame(frame);
   }
   function placeToast(el, t, side) {
@@ -5870,40 +5872,58 @@
     el.style.opacity = vis.toFixed(3);
     el.style.transform = 'translate3d(' + (cx - S / 2 + sway).toFixed(1) + 'px,' + (m - S).toFixed(1) + 'px,0) rotate(' + (Math.sin(t / 190) * 9).toFixed(1) + 'deg)';
   }
+  var tg = null, ts = null, wasActive = false, inactiveSince = 0, userStop = false;
   function frame(now) {
+    try { draw(now); } catch (e) { /* a hiccup must never stop the animation */ }
+    if (running) requestAnimationFrame(frame);
+  }
+  function draw(now) {
     var dt = Math.min(0.1, Math.max(0.001, (now - lastT) / 1000));
     lastT = now;
-    var active = !audio.paused && !!anV;
+    var playingNow = !audio.paused && !!anV;
+    // a very short gap (the next song loading, a seek...) doesn't count as stopped, so the toasts keep falling
+    if (playingNow) inactiveSince = 0; else if (!inactiveSince) inactiveSince = now;
+    var active = playingNow || (inactiveSince && now - inactiveSince < 400 && wasActive && !!anV && !userPaused());
+    wasActive = playingNow || (wasActive && active);
     var maxBar = 0, i;
-    if (active) {
+    if (!tg || tg.length !== N) { tg = new Float32Array(N); ts = new Float32Array(N); }
+    if (playingNow) {
       anV.getByteFrequencyData(freq);
       if (!edges) makeEdges();
       analyseBeat(now);
-    }
-    var atk = 1 - Math.exp(-dt / 0.018), rel = 1 - Math.exp(-dt / 0.14);
-    for (i = 0; i < N; i++) {
-      var target = 0;
-      if (active) {
+      for (i = 0; i < N; i++) {
         var lo = edges[i], hi = edges[i + 1], mx = 0, sm = 0;
         for (var k = lo; k < hi; k++) { var q = freq[k]; if (q > mx) mx = q; sm += q; }
         var val = (0.6 * mx + 0.4 * sm / (hi - lo)) / 255;
-        target = Math.min(1, Math.pow(val, 1.5) * (1 + 0.7 * i / N));
+        tg[i] = Math.min(1, Math.pow(val, 1.5) * (1 + 0.7 * i / N));
+        if (!(tg[i] >= 0)) tg[i] = 0;               // never let a bad number stick
       }
-      bars[i] += (target - bars[i]) * (target > bars[i] ? atk : rel);
+    } else tg.fill(0);
+    // blend neighbouring strips together so the shape is smooth instead of jagged
+    for (i = 0; i < N; i++) {
+      var a2 = tg[Math.max(0, i - 2)], a1 = tg[Math.max(0, i - 1)], b1 = tg[Math.min(N - 1, i + 1)], b2 = tg[Math.min(N - 1, i + 2)];
+      ts[i] = 0.08 * a2 + 0.22 * a1 + 0.4 * tg[i] + 0.22 * b1 + 0.08 * b2;
+    }
+    var atk = 1 - Math.exp(-dt / 0.03), rel = 1 - Math.exp(-dt / 0.2);
+    for (i = 0; i < N; i++) {
+      bars[i] += (ts[i] - bars[i]) * (ts[i] > bars[i] ? atk : rel);
+      if (!(bars[i] >= 0)) bars[i] = 0;
       if (bars[i] > maxBar) maxBar = bars[i];
     }
-    // draw the bars (white in dark mode, black in light mode; louder = taller and brighter)
+    // draw the strips (white in dark mode, black in light mode; louder = taller and brighter)
     if (vg) {
       vg.setTransform(DPR, 0, 0, DPR, 0, 0);
       vg.clearRect(0, 0, W, VH);
       var light = document.documentElement.getAttribute('data-theme') === 'light';
       var rgb = light ? '24,24,28' : '255,255,255';
-      var slot = W / N, bw = Math.max(2, slot * 0.68);
+      var slot = W / N, bw = Math.max(2, slot * 0.72), rad = Math.min(bw / 2, 4);
       for (i = 0; i < N; i++) {
-        var h = bars[i] * (VH - 6);
+        var h = bars[i] * (VH - 4);
         if (h < 1) continue;
-        vg.fillStyle = 'rgba(' + rgb + ',' + (0.22 + 0.78 * Math.min(1, bars[i] * 1.15)).toFixed(3) + ')';
-        vg.fillRect(i * slot + (slot - bw) / 2, VH - h, bw, h);
+        vg.fillStyle = 'rgba(' + rgb + ',' + (0.22 + 0.78 * Math.min(1, bars[i] * 1.2)).toFixed(3) + ')';
+        var x = i * slot + (slot - bw) / 2;
+        if (vg.roundRect && h > rad * 2) { vg.beginPath(); vg.roundRect(x, VH - h, bw, h, [rad, rad, 0, 0]); vg.fill(); }
+        else vg.fillRect(x, VH - h, bw, h);
       }
     }
     // the toasts float down the left edge, then the right edge, forever (one is half out as the other is half in)
@@ -5914,10 +5934,14 @@
     if (!active && vis < 0.01 && maxBar < 0.004) {
       running = false;
       if (vg) vg.clearRect(0, 0, W, VH);
-      return;
     }
-    requestAnimationFrame(frame);
   }
+  function userPaused() { return userStop; }
+  // safety net: if the loop is ever found asleep while a song plays, wake it up again
+  setInterval(function () {
+    if (reduceMotion || audio.paused || !anV) return;
+    if (!running || performance.now() - lastT > 800) { running = false; startLoop(); }
+  }, 1000);
 
   /* ----- disc: click to mute ----- */
   discBtn.addEventListener('click', function () {
