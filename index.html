@@ -91,6 +91,40 @@
   @media (max-width: 760px) { .side-gif { display: none; } }
 
 
+  /* ---------- LIGHTBULB (drops in from the top while you hover the dark / light switch) ---------- */
+  #bulb {
+    position: fixed;
+    top: 0;
+    left: 50%;
+    width: 64px;
+    margin-left: -32px;
+    z-index: 30;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(-150px);
+    transition: opacity 0.3s ease, transform 0.6s cubic-bezier(0.34, 1.4, 0.5, 1);
+  }
+  #bulb.show { opacity: 1; transform: none; }
+  #bulb svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+    transform-origin: 50% 0;
+    animation: bulbSwing 3.2s ease-in-out infinite;
+  }
+  @keyframes bulbSwing { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
+  #bulb .b-line { stroke: var(--fg); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  #bulb .b-glass { fill: transparent; transition: fill 0.25s ease; }
+  #bulb .b-fil { opacity: 0.55; transition: stroke 0.25s ease, opacity 0.25s ease; }
+  #bulb .b-socket { fill: var(--fg); stroke: none; }
+  #bulb.on .b-glass { fill: #ffe27a; }
+  #bulb.on .b-fil { stroke: #b36b00; opacity: 1; }
+  #bulb.on svg { filter: drop-shadow(0 0 12px rgba(255, 205, 70, 0.95)) drop-shadow(0 0 28px rgba(255, 190, 40, 0.55)); }
+  #bulb.flick svg { animation: bulbSwing 3.2s ease-in-out infinite, bulbFlick 0.35s steps(1) 1; }
+  @keyframes bulbFlick { 0% { opacity: 0.25; } 30% { opacity: 1; } 55% { opacity: 0.4; } 100% { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { #bulb svg { animation: none; } }
+
   /* ---------- MUSIC PLAYER (top right, left of the gear) ---------- */
   #mp {
     position: fixed;
@@ -2027,6 +2061,14 @@
   <div id="mp-list-wrap"><div id="mp-list"></div></div>
 </div>
 
+<div id="bulb" aria-hidden="true">
+  <svg viewBox="0 0 64 140">
+    <path class="b-line" d="M32 0 V60"/>
+    <rect class="b-socket" x="24" y="58" width="16" height="16" rx="3"/>
+    <path class="b-glass b-line" d="M25 74 H39 V82 C48 88 52 95 52 104 A20 20 0 0 1 12 104 C12 95 16 88 25 82 Z"/>
+    <path class="b-fil b-line" d="M26 106 L29 98 L32 108 L35 98 L38 106"/>
+  </svg>
+</div>
 <div id="settings">
   <button id="settings-btn" type="button" aria-label="settings" aria-expanded="false" aria-controls="settings-panel">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -5770,6 +5812,35 @@
   applyVolume();
   load(current);
   loadNames();
+})();
+</script>
+<script>
+/* ---------- Lightbulb that appears over the dark / light switch ---------- */
+(function () {
+  var bulb = document.getElementById('bulb');
+  var seg = document.getElementById('theme-seg');
+  if (!bulb || !seg) return;
+  var root = document.documentElement;
+  function lightNow() { return root.getAttribute('data-theme') === 'light'; }
+  function setOn(on, flick) {
+    var was = bulb.classList.contains('on');
+    bulb.classList.toggle('on', on);
+    if (flick && was !== on) {
+      bulb.classList.remove('flick');
+      void bulb.offsetWidth;
+      bulb.classList.add('flick');
+    }
+  }
+  seg.addEventListener('mouseenter', function () { bulb.classList.add('show'); });
+  seg.addEventListener('mouseleave', function () { bulb.classList.remove('show'); });
+  seg.addEventListener('mouseover', function (e) {          // hovering "Light" switches the bulb on, "Dark" switches it off
+    var b = e.target.closest && e.target.closest('[data-theme-set]');
+    setOn(b ? b.getAttribute('data-theme-set') === 'light' : lightNow(), !!b);
+  });
+  seg.addEventListener('mouseout', function (e) {
+    if (!seg.contains(e.relatedTarget)) setOn(lightNow(), false);
+  });
+  seg.addEventListener('click', function () { setTimeout(function () { setOn(lightNow(), true); }, 0); });
 })();
 </script>
 </body>
