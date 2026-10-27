@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>toast</title>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&family=Indie+Flower&family=Barrio&family=Silkscreen&family=Bruno+Ace+SC&family=Libre+Barcode+39+Text&family=Rubik+Iso&family=Frijole&family=Palette+Mosaic&family=Single+Day&family=Just+Me+Again+Down+Here&family=Tiny5&family=Atma:wght@600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&family=Indie+Flower&family=Barrio&family=Silkscreen&family=Bruno+Ace+SC&family=Libre+Barcode+39+Text&family=Rubik+Iso&family=Frijole&family=Palette+Mosaic&family=Single+Day&family=Just+Me+Again+Down+Here&family=Tiny5&family=Atma:wght@600&family=Crafty+Girls&display=swap" rel="stylesheet">
 <script>
   // intro: hide everything until the opening animation is set up (skipped for reduced motion)
   try { if (!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) document.documentElement.classList.add('intro'); } catch (e) {}
@@ -183,13 +183,28 @@
     border-bottom: 5px solid transparent;
   }
   #mp-title {
-    max-width: 120px;
+    max-width: 130px;
+    padding: 5px 0;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 12px;
+    white-space: pre;
+    font-family: 'Crafty Girls', 'Poppins', cursive;
+    font-size: 15px;
+    line-height: 1.1;
     color: var(--fg2);
   }
+  #mp-title .ch { display: inline-block; }
+  /* the letters ripple while a song is playing */
+  #mp:not(.paused) #mp-title .ch {
+    animation: mpWave 1.3s ease-in-out infinite;
+    animation-delay: calc(var(--i) * -0.11s);
+  }
+  @keyframes mpWave {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    25% { transform: translateY(-3px) rotate(-4deg); }
+    75% { transform: translateY(3px) rotate(4deg); }
+  }
+  @media (prefers-reduced-motion: reduce) { #mp:not(.paused) #mp-title .ch { animation: none; } }
   /* volume slider: the colours stay fixed along the bar (blue = quiet, red = loud) and the level reveals them */
   #mp-vol {
     position: relative;
@@ -2468,10 +2483,13 @@
     if (submitBoxEl.contains(document.activeElement) && document.activeElement.blur) document.activeElement.blur();
     submitBoxEl.classList.remove('open');
   }
+  let submitOpenedAt = 0;
+  // fully rolled out = open and the 0.7s roll-out is over; the hover sound only plays before that
+  function submitFullyOut() { return submitBoxEl.classList.contains('open') && performance.now() - submitOpenedAt > 700; }
   function openSubmit() {
     clearTimeout(submitCloseT);
     if (document.getElementById('release-zone').matches(':hover') || document.getElementById('release-panel').classList.contains('open')) return;
-    if (!submitBoxEl.classList.contains('open')) { flashLabel(); emoteBurst(); }   // the rainbow + the emotes start as it rolls out
+    if (!submitBoxEl.classList.contains('open')) { flashLabel(); emoteBurst(); submitOpenedAt = performance.now(); }   // the rainbow + the emotes start as it rolls out
     submitBoxEl.classList.add('open');
   }
   function scheduleSubmitClose() {
@@ -2481,7 +2499,7 @@
       submitBoxEl.classList.remove('open');
     }, 2000);
   }
-  submitLabelEl.addEventListener('mouseenter', function () { if (canHoverSubmit && !submitBoxEl.style.pointerEvents && !submitBoxEl.classList.contains('open')) playSound('hover1'); });
+  submitLabelEl.addEventListener('mouseenter', function () { if (canHoverSubmit && !submitBoxEl.style.pointerEvents && !submitFullyOut()) playSound('hover1'); });
   submitBoxEl.addEventListener('mouseenter', function () { submitHover = true; openSubmit(); });
   submitBoxEl.addEventListener('mouseleave', function () { submitHover = false; scheduleSubmitClose(); });
   submitBoxEl.addEventListener('focusin', openSubmit);
@@ -5442,27 +5460,27 @@
     mp.classList.toggle('muted', muted);
   }
 
-  // Browsers refuse sound until the visitor has clicked something, but they do allow a MUTED start.
-  // So the music starts right away (silently if it has to) and is unmuted by the first click or key press.
-  var waitingForTap = false, autoMuted = false;
   function tryPlay() {
     audio.muted = muted;
-    var p;
-    try { p = audio.play(); } catch (e) { return; }
-    if (!p || !p.then) return;
-    p.then(function () { waitingForTap = false; }, function () {
-      if (muted) { waitingForTap = true; return; }
-      audio.muted = true;                                   // second try: silent start
-      var q;
-      try { q = audio.play(); } catch (e) { waitingForTap = true; return; }
-      if (q && q.then) q.then(function () { autoMuted = true; waitingForTap = true; }, function () { waitingForTap = true; });
+    try { var p = audio.play(); if (p && p.catch) p.catch(function () {}); } catch (e) {}
+  }
+  // every letter is its own span so the caption can wave while the song plays
+  function setTitle(text) {
+    titleEl.title = text;
+    titleEl.setAttribute('aria-label', text);
+    titleEl.textContent = '';
+    Array.prototype.forEach.call(text, function (ch, i) {
+      var sp = document.createElement('span');
+      sp.className = 'ch';
+      sp.textContent = ch;
+      sp.style.setProperty('--i', i);
+      titleEl.appendChild(sp);
     });
   }
   function load(track) {
     current = track;
     audio.src = encodeURI(track.src);
-    titleEl.textContent = track.name;
-    titleEl.title = track.name;
+    setTitle(track.name);
     render();
   }
   function next() {
@@ -5473,8 +5491,6 @@
     tryPlay();
   }
   function stopMusic() {      // pauses where it is, so playing again carries on from the same spot
-    waitingForTap = false;
-    autoMuted = false;
     audio.pause();
   }
   stopBtn.addEventListener('click', function () {
@@ -5486,20 +5502,10 @@
   audio.addEventListener('play', function () { mp.classList.remove('paused'); });
   audio.addEventListener('pause', function () { mp.classList.add('paused'); });
 
-  // browsers only let sound start after the visitor has touched the page, so wait for the first tap / key
-  ['pointerdown', 'keydown', 'touchend', 'click'].forEach(function (ev) {
-    window.addEventListener(ev, function (e) {
-      if (!waitingForTap || (e.target && e.target.closest && e.target.closest('#mp-stop'))) return;
-      if (autoMuted && !audio.paused) { autoMuted = false; waitingForTap = false; audio.muted = muted; }   // it was already playing silently: just unmute
-      else tryPlay();
-    }, true);
-  });
-
   /* ----- disc: click to mute ----- */
   discBtn.addEventListener('click', function () {
     muted = !muted;
     applyVolume(); save();
-    if (audio.paused) tryPlay();
   });
 
   /* ----- volume slider ----- */
@@ -5514,7 +5520,6 @@
     draggingVol = true;
     try { vol.setPointerCapture(e.pointerId); } catch (er) {}
     setFromPointer(e);
-    if (audio.paused) tryPlay();
   });
   vol.addEventListener('pointermove', function (e) { if (draggingVol) setFromPointer(e); });
   vol.addEventListener('pointerup', function () { draggingVol = false; });
@@ -5629,8 +5634,7 @@
   /* ----- admin: rename songs (saved in the shared database, so everyone sees the new names) ----- */
   function applyNames(map) {
     TRACKS.forEach(function (t) { t.name = (map && typeof map[t.id] === 'string' && map[t.id]) ? map[t.id] : t.base; });
-    titleEl.textContent = current.name;
-    titleEl.title = current.name;
+    setTitle(current.name);
     render();
   }
   function loadNames() {
@@ -5664,8 +5668,7 @@
         var stored = (v && v !== t.base) ? v : null;      // empty or original = back to the default name
         Promise.resolve(db.put('musicNames/' + t.id, stored)).catch(function () {});
       }
-      titleEl.textContent = current.name;
-      titleEl.title = current.name;
+      setTitle(current.name);
       render();
       if (!mp.matches(':hover')) scheduleClose();
     }
@@ -5680,7 +5683,6 @@
   applyVolume();
   load(current);
   loadNames();
-  tryPlay();
 })();
 </script>
 </body>
