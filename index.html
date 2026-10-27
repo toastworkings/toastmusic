@@ -5824,18 +5824,16 @@
     el.className = 'fx-p';
     el.textContent = cfg.chars[Math.floor(Math.random() * cfg.chars.length)];
     el.style.fontSize = size + 'px';
-    var T = 1000 + Math.random() * 350;                   // flight time (ms)
-    var reach = 90 + Math.random() * 100;                 // how far in from the line it can get (px)
-    var vy = -(240 + Math.random() * 160), g = 900;       // up-speed (px/s) and gravity (px/s^2)
-    var spin = (Math.random() * 160 - 80) | 0;
-    var frames = [], n = 12;
+    var T = 1500 + Math.random() * 500;                   // flight time (ms)
+    var reach = 170 + Math.random() * 130;                // how far in from the line it flies, in a straight line (px)
+    var spin = (Math.random() * 120 - 60) | 0;
+    var frames = [], n = 10;
     for (var k = 0; k <= n; k++) {
-      var t = k / n, sec = t * T / 1000;
-      var px = x + dir * reach * (1 - (1 - t) * (1 - t));     // shoots out fast, then slows down
-      var py = y + vy * sec + 0.5 * g * sec * sec;             // up, then gravity pulls it down
+      var t = k / n;
+      var px = x + dir * reach * (1 - (1 - t) * (1 - t) * 0.6 - 0.4 * (1 - t));   // fast start, steady glide, no gravity
       frames.push({
-        transform: 'translate(' + (px - size / 2).toFixed(1) + 'px,' + (py - size / 2).toFixed(1) + 'px) rotate(' + (spin * t).toFixed(1) + 'deg) scale(' + (0.7 + 0.5 * Math.sin(Math.min(1, t * 1.6) * Math.PI / 2)).toFixed(2) + ')',
-        opacity: t < 0.45 ? 0.95 : Math.max(0, 0.95 * (1 - (t - 0.45) / 0.5)),
+        transform: 'translate(' + (px - size / 2).toFixed(1) + 'px,' + (y - size / 2).toFixed(1) + 'px) rotate(' + (spin * t).toFixed(1) + 'deg) scale(' + (0.75 + 0.35 * Math.min(1, t * 3)).toFixed(2) + ')',
+        opacity: t < 0.65 ? 0.95 : Math.max(0, 0.95 * (1 - (t - 0.65) / 0.35)),
         offset: t
       });
     }
