@@ -135,7 +135,7 @@
     top: 0;
     width: 100%;
     height: 100%;
-    z-index: -1;              /* behind the page's content */
+    z-index: 5;               /* above the side gifs (z-index 4), below the menus and the floating toasts */
     pointer-events: none;
   }
   .toast-fl {
@@ -143,7 +143,7 @@
     top: 0;
     left: 0;
     width: 100px;
-    z-index: 3;
+    z-index: 6;
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
