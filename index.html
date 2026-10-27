@@ -5468,9 +5468,37 @@
     mp.classList.toggle('muted', muted);
   }
 
-  function tryPlay() {
+  /* tape-stop effect: stopping slows the song (and its pitch) down to a halt, starting spins it back up */
+  try { audio.preservesPitch = false; audio.mozPreservesPitch = false; audio.webkitPreservesPitch = false; } catch (e) {}
+  var MIN_RATE = 0.07, rampTimer = null, stopping = false;
+  function isPlaying() { return !audio.paused && !stopping; }
+  function ramp(from, to, ms, curve, done) {
+    clearInterval(rampTimer);
+    var t0 = performance.now();
+    rampTimer = setInterval(function () {
+      var k = Math.min(1, (performance.now() - t0) / ms);
+      audio.playbackRate = Math.max(MIN_RATE, from + (to - from) * curve(k));
+      if (k >= 1) { clearInterval(rampTimer); rampTimer = null; if (done) done(); }
+    }, 16);
+  }
+  function tryPlay(instant) {
     audio.muted = muted;
-    try { var p = audio.play(); if (p && p.catch) p.catch(function () {}); } catch (e) {}
+    var wasStopping = stopping;
+    stopping = false;
+    mp.classList.remove('paused');
+    if (instant) { clearInterval(rampTimer); audio.playbackRate = 1; }
+    else if (wasStopping || !audio.paused) {                    // still winding down: spin back up from where it is
+      ramp(audio.playbackRate, 1, 500, function (k) { return 1 - (1 - k) * (1 - k); });
+    } else {
+      audio.playbackRate = MIN_RATE;
+    }
+    if (audio.paused) {
+      try {
+        var p = audio.play();
+        if (p && p.catch) p.catch(function () { audio.playbackRate = 1; mp.classList.add('paused'); });
+      } catch (e) {}
+      if (!instant) ramp(MIN_RATE, 1, 650, function (k) { return 1 - (1 - k) * (1 - k); });
+    }
   }
   // every letter is its own span so the caption can wave while the song plays
   function setTitle(text) {
@@ -5496,18 +5524,26 @@
     if (!n) n = current;
     else queue.push(current);
     load(n);
-    tryPlay();
+    tryPlay(true);
   }
   function stopMusic() {      // pauses where it is, so playing again carries on from the same spot
-    audio.pause();
+    if (audio.paused || stopping) return;
+    stopping = true;
+    mp.classList.add('paused');                    // the disc and the wave settle right away
+    ramp(audio.playbackRate, MIN_RATE, 800, function (k) { return k * k; }, function () {
+      if (!stopping) return;
+      stopping = false;
+      audio.pause();
+      audio.playbackRate = 1;
+    });
   }
   stopBtn.addEventListener('click', function () {
-    if (audio.paused) tryPlay(); else stopMusic();
+    if (isPlaying()) stopMusic(); else tryPlay();
   });
   window.addEventListener('toast:release-play', stopMusic);   // the newest release takes over
   audio.addEventListener('ended', next);
   audio.addEventListener('error', function () { if (TRACKS.length > 1) setTimeout(function () { if (audio.error) next(); }, 1500); });
-  audio.addEventListener('play', function () { mp.classList.remove('paused'); });
+  audio.addEventListener('play', function () { if (!stopping) mp.classList.remove('paused'); });
   audio.addEventListener('pause', function () { mp.classList.add('paused'); });
 
   /* ----- disc: click to mute ----- */
@@ -5576,7 +5612,7 @@
     var row = e.target.closest('.mp-row');
     if (!row) return;
     var t = byId[row.dataset.id];
-    if (t === current) { if (audio.paused) tryPlay(); return; }
+    if (t === current) { if (!isPlaying()) tryPlay(); return; }
     queue = queue.filter(function (x) { return x !== t; });
     queue.push(current);
     load(t);
