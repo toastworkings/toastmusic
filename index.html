@@ -193,18 +193,21 @@
     line-height: 1.1;
     color: var(--fg2);
   }
-  #mp-title .ch { display: inline-block; }
-  /* the letters ripple while a song is playing */
-  #mp:not(.paused) #mp-title .ch {
+  /* --amp is the wave strength: it eases from 0 to 1 when a song starts and back to 0 when it stops */
+  @property --amp { syntax: '<number>'; inherits: true; initial-value: 0; }
+  #mp-title { --amp: 0; transition: --amp 0.9s ease-in-out; }
+  #mp:not(.paused) #mp-title { --amp: 1; }
+  #mp-title .ch {
+    display: inline-block;
     animation: mpWave 1.3s ease-in-out infinite;
     animation-delay: calc(var(--i) * -0.11s);
   }
   @keyframes mpWave {
     0%, 100% { transform: translateY(0) rotate(0deg); }
-    25% { transform: translateY(-3px) rotate(-4deg); }
-    75% { transform: translateY(3px) rotate(4deg); }
+    25% { transform: translateY(calc(var(--amp) * -3px)) rotate(calc(var(--amp) * -4deg)); }
+    75% { transform: translateY(calc(var(--amp) * 3px)) rotate(calc(var(--amp) * 4deg)); }
   }
-  @media (prefers-reduced-motion: reduce) { #mp:not(.paused) #mp-title .ch { animation: none; } }
+  @media (prefers-reduced-motion: reduce) { #mp-title .ch { animation: none; } }
   /* volume slider: the colours stay fixed along the bar (blue = quiet, red = loud) and the level reveals them */
   #mp-vol {
     position: relative;
@@ -2484,6 +2487,7 @@
     submitBoxEl.classList.remove('open');
   }
   let submitOpenedAt = 0;
+  let lastHoverSfx = -1e9;
   // fully rolled out = open and the 0.7s roll-out is over; the hover sound only plays before that
   function submitFullyOut() { return submitBoxEl.classList.contains('open') && performance.now() - submitOpenedAt > 700; }
   function openSubmit() {
@@ -2499,7 +2503,11 @@
       submitBoxEl.classList.remove('open');
     }, 2000);
   }
-  submitLabelEl.addEventListener('mouseenter', function () { if (canHoverSubmit && !submitBoxEl.style.pointerEvents && !submitFullyOut()) playSound('hover1'); });
+  submitLabelEl.addEventListener('mouseenter', function () { if (!canHoverSubmit || submitBoxEl.style.pointerEvents || submitFullyOut()) return;
+    const now = performance.now();
+    if (now - lastHoverSfx < 1000) return;      // at most once a second, however fast you wiggle the mouse
+    lastHoverSfx = now;
+    playSound('hover1'); });
   submitBoxEl.addEventListener('mouseenter', function () { submitHover = true; openSubmit(); });
   submitBoxEl.addEventListener('mouseleave', function () { submitHover = false; scheduleSubmitClose(); });
   submitBoxEl.addEventListener('focusin', openSubmit);
