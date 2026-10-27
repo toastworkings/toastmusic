@@ -71,7 +71,10 @@
     transition: background-color 0.35s ease, color 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease !important;
   }
 
-  ::view-transition-old(root), ::view-transition-new(root) { animation-duration: 0.35s; animation-timing-function: ease; }
+  ::view-transition-old(root), ::view-transition-new(root) { mix-blend-mode: normal; animation-duration: 0.35s; animation-timing-function: ease; }
+  ::view-transition-old(root) { animation: none; }
+  ::view-transition-new(root) { animation-name: themeFadeIn; }
+  @keyframes themeFadeIn { from { opacity: 0; } }
 
   /* ---------- SIDE GIFS (pop up at the edges and fade away) ---------- */
   .side-gif {
@@ -243,6 +246,7 @@
     25% { transform: translateY(calc(var(--amp) * -3px)) rotate(calc(var(--amp) * -4deg)); }
     75% { transform: translateY(calc(var(--amp) * 3px)) rotate(calc(var(--amp) * 4deg)); }
   }
+  #mp.idle #mp-title .ch { animation: none; }
   @media (prefers-reduced-motion: reduce) { #mp-title .ch { animation: none; } }
   /* volume slider: the colours stay fixed along the bar (blue = quiet, red = loud) and the level reveals them */
   #mp-vol {
@@ -5327,8 +5331,13 @@
       drawWave();
     };
     if (useVT) {
-      try { document.startViewTransition(change); }
-      catch (e) { change(); }
+      rootEl.setAttribute('data-theme-switching', '1');
+      const settle = function () {
+        rootEl.removeAttribute('data-theme-switching');
+        window.dispatchEvent(new Event('toast:theme-settled'));
+      };
+      try { document.startViewTransition(change).finished.then(settle, settle); }
+      catch (e) { change(); settle(); }
     } else {
       change();
     }
@@ -5809,6 +5818,17 @@
     input.addEventListener('blur', function () { finish(true); });
   });
 
+  // once the wave has eased back to nothing, stop animating the letters altogether
+  var idleT = null;
+  new MutationObserver(function () {
+    var paused = mp.classList.contains('paused'), idle = mp.classList.contains('idle');
+    if (paused === idle) return;                         // nothing to change (also stops this from re-triggering itself)
+    clearTimeout(idleT);
+    if (paused) idleT = setTimeout(function () { if (mp.classList.contains('paused')) mp.classList.add('idle'); }, 1100);
+    else mp.classList.remove('idle');
+  }).observe(mp, { attributes: true, attributeFilter: ['class'] });
+  idleT = setTimeout(function () { mp.classList.add('idle'); }, 0);
+
   applyVolume();
   load(current);
   loadNames();
@@ -5825,22 +5845,35 @@
   function setOn(on, flick) {
     var was = bulb.classList.contains('on');
     bulb.classList.toggle('on', on);
-    if (flick && was !== on) {
+    if (flick && on && !was) {
       bulb.classList.remove('flick');
       void bulb.offsetWidth;
       bulb.classList.add('flick');
     }
   }
-  seg.addEventListener('mouseenter', function () { bulb.classList.add('show'); });
-  seg.addEventListener('mouseleave', function () { bulb.classList.remove('show'); });
-  seg.addEventListener('mouseover', function (e) {          // hovering "Light" switches the bulb on, "Dark" switches it off
+  var hideT = null;
+  function show() { clearTimeout(hideT); bulb.classList.add('show'); }
+  function maybeHide() {
+    clearTimeout(hideT);
+    hideT = setTimeout(function () {
+      // never retract while the theme is switching (the page crossfade briefly steals the hover)
+      if (root.hasAttribute('data-theme-switching') || seg.matches(':hover')) return;
+      bulb.classList.remove('show');
+      setOn(lightNow(), false);
+    }, 150);
+  }
+  seg.addEventListener('mouseenter', show);
+  seg.addEventListener('mouseleave', maybeHide);
+  window.addEventListener('toast:theme-settled', function () { if (seg.matches(':hover')) show(); else maybeHide(); });
+  seg.addEventListener('mouseover', function (e) {          // hovering "Light" switches the bulb on (with a flicker), "Dark" switches it off
     var b = e.target.closest && e.target.closest('[data-theme-set]');
-    setOn(b ? b.getAttribute('data-theme-set') === 'light' : lightNow(), !!b);
+    var wantsLight = b ? b.getAttribute('data-theme-set') === 'light' : lightNow();
+    setOn(wantsLight, !!b && wantsLight);
+    show();
   });
   seg.addEventListener('mouseout', function (e) {
-    if (!seg.contains(e.relatedTarget)) setOn(lightNow(), false);
+    if (!seg.contains(e.relatedTarget)) maybeHide();
   });
-  seg.addEventListener('click', function () { setTimeout(function () { setOn(lightNow(), true); }, 0); });
 })();
 </script>
 </body>
