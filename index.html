@@ -622,7 +622,7 @@
     cursor: pointer;
     transition: background 0.2s ease-out, color 0.2s ease-out;
   }
-  #sfx-row {
+  #sfx-row, #fxsw-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -2252,6 +2252,11 @@
     <div id="sfx-row">
       <span>Mute sound effects</span>
       <button id="sfx-switch" class="switch" type="button" role="switch" aria-checked="false" aria-label="Mute sound effects"></button>
+    </div>
+    <div class="set-title">Visuals</div>
+    <div id="fxsw-row" class="sfx-like">
+      <span>Song special effects</span>
+      <button id="fx-switch" class="switch" type="button" role="switch" aria-checked="true" aria-label="Song special effects"></button>
     </div>
     <div id="account-bar" hidden>
       <div class="set-title">Account</div>
@@ -5817,6 +5822,8 @@
 
   /* ===== audio analysis: visualizer, beat tracking and the bopping toasts ===== */
   var reduceMotion = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+  var fxEnabled = true;                                    // settings: the per-song special effects
+  try { fxEnabled = localStorage.getItem('toast_fx') !== '0'; } catch (e) {}
   var viz = document.getElementById('viz');
   var vg = viz ? viz.getContext('2d') : null;
   var freq = null;
@@ -5914,8 +5921,8 @@
     var playingNow = !audio.paused && !!anV;
     var cfgNow = FX[current.id];
     var peaky = !!(cfgNow && (cfgNow.hits || cfgNow.peaky));
-    var hitsOn = !!(cfgNow && cfgNow.hits);
-    var dropOn = !!(cfgNow && cfgNow.drop && playingNow && audio.currentTime >= cfgNow.drop);
+    var hitsOn = !!(cfgNow && cfgNow.hits && fxEnabled);
+    var dropOn = !!(cfgNow && cfgNow.drop && fxEnabled && playingNow && audio.currentTime >= cfgNow.drop);
     if (dropOn !== dropState) setDrop(dropOn);
     if (dropOn) kickFlash(now);
     var maxBar = 0, i;
@@ -6076,11 +6083,11 @@
     wt4: { hits: true, drop: 14, chars: ['🎵', '🎶', '🎼', '⚡', '🌩️', '♪', '♫'] }
   };
   var fxTimer = null, fxCount = 0;
-  function fxActive() { var c = FX[current.id]; return !reduceMotion && !audio.paused && !stopping && !!(c && c.chars.length); }
+  function fxActive() { var c = FX[current.id]; return fxEnabled && !reduceMotion && !audio.paused && !stopping && !!(c && c.chars.length); }
   var ocean = document.getElementById('ocean'), oceanOn = false, oceanSwell = 0;
   function oceanUpdate() {
     var c = FX[current.id];
-    oceanOn = !!(ocean && !reduceMotion && c && c.ocean && !audio.paused && !stopping);
+    oceanOn = !!(ocean && fxEnabled && !reduceMotion && c && c.ocean && !audio.paused && !stopping);
     if (ocean) ocean.classList.toggle('show', oceanOn);
   }
   function fxUpdate() {
@@ -6088,6 +6095,19 @@
     if (fxActive()) { if (!fxTimer) fxTimer = setInterval(fxSpawn, 240); }
     else if (fxTimer) { clearInterval(fxTimer); fxTimer = null; }
   }
+  (function () {
+    var sw = document.getElementById('fx-switch');
+    if (!sw) return;
+    function show() { sw.setAttribute('aria-checked', fxEnabled ? 'true' : 'false'); sw.classList.toggle('on', fxEnabled); }
+    show();
+    sw.addEventListener('click', function () {
+      fxEnabled = !fxEnabled;
+      try { localStorage.setItem('toast_fx', fxEnabled ? '1' : '0'); } catch (e) {}
+      show();
+      fxUpdate();
+      if (!fxEnabled) document.querySelectorAll('.fx-p').forEach(function (n) { n.remove(); });
+    });
+  })();
   function fxSpawn() {
     var cfg = FX[current.id];
     if (!cfg || document.hidden || fxCount > 46 || window.innerWidth < 600) return;
