@@ -141,6 +141,36 @@
   }
   #mp.muted #mp-x { opacity: 1; transform: none; }
   #mp.muted #mp-disc { opacity: 0.55; }
+  #mp-stop {
+    flex: none;
+    position: relative;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background 0.15s ease-out;
+  }
+  #mp-stop:hover { background: var(--surface-hover); }
+  #mp-stop::after {                       /* a square = stop (while playing) */
+    content: '';
+    position: absolute;
+    left: 6px; top: 6px;
+    width: 8px; height: 8px;
+    border-radius: 1px;
+    background: var(--fg);
+  }
+  #mp.paused #mp-stop::after {            /* a triangle = play (while stopped) */
+    left: 7px; top: 5px;
+    width: 0; height: 0;
+    border-radius: 0;
+    background: none;
+    border-left: 9px solid var(--fg);
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+  }
   #mp-title {
     max-width: 120px;
     overflow: hidden;
@@ -229,6 +259,7 @@
     -webkit-user-select: none;
     touch-action: none;
   }
+  .mp-row { cursor: pointer; }
   .mp-row.now { background: var(--surface3); }
   .mp-row.q { cursor: grab; }
   .mp-row.q:hover { background: var(--surface2); }
@@ -1912,6 +1943,7 @@
     <svg id="mp-x" viewBox="0 0 38 38" aria-hidden="true"><path d="M10 10 L28 28 M28 10 L10 28" stroke="#ff3b3b" stroke-width="3.5" stroke-linecap="round" fill="none"/></svg>
   </button>
   <span id="mp-title"></span>
+  <button id="mp-stop" type="button" aria-label="Stop the music" title="Stop"></button>
   <div id="mp-vol" role="slider" aria-label="Music volume" aria-valuemin="0" aria-valuemax="100" aria-valuenow="40" tabindex="0">
     <div id="mp-vol-track"><div id="mp-vol-fill"></div></div>
     <div id="mp-vol-thumb"></div>
@@ -2380,7 +2412,7 @@
       submitBoxEl.classList.remove('open');
     }, 2000);
   }
-  submitLabelEl.addEventListener('mouseenter', function () { if (canHoverSubmit && !submitBoxEl.style.pointerEvents) playSound('hover1'); });
+  submitLabelEl.addEventListener('mouseenter', function () { if (canHoverSubmit && !submitBoxEl.style.pointerEvents && !submitBoxEl.classList.contains('open')) playSound('hover1'); });
   submitBoxEl.addEventListener('mouseenter', function () { submitHover = true; openSubmit(); });
   submitBoxEl.addEventListener('mouseleave', function () { submitHover = false; scheduleSubmitClose(); });
   submitBoxEl.addEventListener('focusin', openSubmit);
@@ -4802,6 +4834,7 @@
     else if (relWidget) relWidget.seekTo(ms);
   }
   function playerPlay() {
+    try { window.dispatchEvent(new Event('toast:release-play')); } catch (e) {}   // the background music stops
     if (relMode === 'file' && relAudio) {
       if (relAC && relAC.state === 'suspended') relAC.resume();
       relAudio.play().catch(function () {});
@@ -5292,6 +5325,7 @@
   var mp = document.getElementById('mp');
   var discBtn = document.getElementById('mp-disc-btn');
   var titleEl = document.getElementById('mp-title');
+  var stopBtn = document.getElementById('mp-stop');
   var vol = document.getElementById('mp-vol');
   var fill = document.getElementById('mp-vol-fill');
   var thumb = document.getElementById('mp-vol-thumb');
@@ -5359,6 +5393,15 @@
     load(n);
     tryPlay();
   }
+  function stopMusic() {
+    waitingForTap = false;
+    audio.pause();
+    try { audio.currentTime = 0; } catch (e) {}
+  }
+  stopBtn.addEventListener('click', function () {
+    if (audio.paused) tryPlay(); else stopMusic();
+  });
+  window.addEventListener('toast:release-play', stopMusic);   // the newest release takes over
   audio.addEventListener('ended', next);
   audio.addEventListener('error', function () { if (TRACKS.length > 1) setTimeout(function () { if (audio.error) next(); }, 1500); });
   audio.addEventListener('play', function () { mp.classList.remove('paused'); });
@@ -5366,7 +5409,7 @@
 
   // browsers only let sound start after the visitor has touched the page, so wait for the first tap / key
   ['pointerdown', 'keydown', 'touchend', 'click'].forEach(function (ev) {
-    window.addEventListener(ev, function () { if (waitingForTap) tryPlay(); }, true);
+    window.addEventListener(ev, function (e) { if (waitingForTap && !(e.target && e.target.closest && e.target.closest('#mp-stop'))) tryPlay(); }, true);
   });
 
   /* ----- disc: click to mute ----- */
@@ -5430,6 +5473,20 @@
     });
   }
 
+  // click a song to play it (the song that was playing goes to the bottom of the queue)
+  var justDragged = false;
+  list.addEventListener('click', function (e) {
+    if (justDragged || e.target.closest('.mp-edit, .mp-input')) return;
+    var row = e.target.closest('.mp-row');
+    if (!row) return;
+    var t = byId[row.dataset.id];
+    if (t === current) { if (audio.paused) tryPlay(); return; }
+    queue = queue.filter(function (x) { return x !== t; });
+    queue.push(current);
+    load(t);
+    tryPlay();
+  });
+
   // drag a row up or down; the song at the top plays next
   list.addEventListener('pointerdown', function (e) {
     var row = e.target.closest('.mp-row.q');
@@ -5438,6 +5495,7 @@
     dragging = true;
     var startRect = row.getBoundingClientRect();
     var grab = e.clientY - startRect.top;
+    var startY = e.clientY, moved = false;
     row.classList.add('dragging');
     try { row.setPointerCapture(e.pointerId); } catch (er) {}
 
@@ -5448,6 +5506,7 @@
     }
     function move(ev) {
       var y = ev.clientY;
+      if (Math.abs(y - startY) > 4) moved = true;
       var prev = row.previousElementSibling, nxt = row.nextElementSibling;
       while (prev && prev.classList.contains('q') && y < prev.getBoundingClientRect().top + prev.offsetHeight / 2) {
         row.parentNode.insertBefore(row, prev); prev = row.previousElementSibling;
@@ -5461,6 +5520,13 @@
       row.removeEventListener('pointermove', move);
       row.removeEventListener('pointerup', up);
       row.removeEventListener('pointercancel', up);
+      if (!moved) {                       // it was just a click: let the click handler play the song
+        row.classList.remove('dragging');
+        row.style.transform = '';
+        dragging = false;
+        return;
+      }
+      justDragged = true; setTimeout(function () { justDragged = false; }, 60);
       row.classList.add('settle');
       row.style.transform = 'none';
       setTimeout(function () {
