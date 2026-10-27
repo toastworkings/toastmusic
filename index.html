@@ -5902,16 +5902,16 @@
     }
     var fromLeft = Math.random() < 0.5, dir = fromLeft ? 1 : -1;
     var x0 = fromLeft ? -size : w + 4, y0 = h * (0.06 + Math.random() * 0.86);
-    var dx = dir * (150 + Math.random() * 260);
+    var dx = dir * (110 + Math.random() * 200);
     var dy = cfg.snow ? 70 + Math.random() * 220 : Math.random() * 160 - 80;
     var lift = cfg.snow ? 0 : -(30 + Math.random() * 60);
-    var r1 = (Math.random() * 120 - 60) | 0, dur = 2600 + Math.random() * 1800;
+    var r1 = (Math.random() * 120 - 60) | 0, dur = 1500 + Math.random() * 1000;
     fxCount++;
     document.body.appendChild(el);
     var an = el.animate([
       { transform: 'translate(' + x0 + 'px,' + y0 + 'px) rotate(0deg)', opacity: 0 },
-      { transform: 'translate(' + (x0 + dx * 0.2) + 'px,' + (y0 + dy * 0.1) + 'px) rotate(' + (r1 * 0.2) + 'deg)', opacity: 1, offset: 0.12 },
-      { transform: 'translate(' + (x0 + dx * 0.55) + 'px,' + (y0 + dy * 0.5 + lift) + 'px) rotate(' + (r1 * 0.6) + 'deg)', opacity: 1, offset: 0.6 },
+      { transform: 'translate(' + (x0 + dx * 0.2) + 'px,' + (y0 + dy * 0.1) + 'px) rotate(' + (r1 * 0.2) + 'deg)', opacity: 0.4, offset: 0.1 },
+      { transform: 'translate(' + (x0 + dx * 0.55) + 'px,' + (y0 + dy * 0.5 + lift) + 'px) rotate(' + (r1 * 0.6) + 'deg)', opacity: 0.32, offset: 0.4 },
       { transform: 'translate(' + (x0 + dx) + 'px,' + (y0 + dy) + 'px) rotate(' + r1 + 'deg)', opacity: 0 }
     ], { duration: dur, easing: 'ease-out' });
     an.onfinish = function () { el.remove(); fxCount--; };
