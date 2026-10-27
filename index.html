@@ -5822,6 +5822,13 @@
   stopBtn.addEventListener('click', function () {
     if (isPlaying()) stopMusic(); else tryPlay();
   });
+  document.addEventListener('keydown', function (e) {          // space = pause / resume
+    if ((e.key !== ' ' && e.code !== 'Space') || e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
+    var t = e.target;
+    if (t && t.closest && t.closest('input, textarea, select, button, a, [contenteditable], [role="switch"]')) return;
+    e.preventDefault();
+    if (isPlaying()) stopMusic(); else tryPlay();
+  });
   window.addEventListener('toast:release-play', stopMusic);   // the newest release takes over
   audio.addEventListener('ended', next);
   audio.addEventListener('error', function () { if (TRACKS.length > 1) setTimeout(function () { if (audio.error) next(); }, 1500); });
