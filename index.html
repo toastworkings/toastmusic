@@ -139,6 +139,10 @@
     pointer-events: none;
   }
   @media (max-width: 600px) { #viz { display: none; } }
+  /* the quieter the music, the fainter the waveform and the special effects (--fxv = volume, 0 to 1) */
+  #viz { opacity: var(--fxv, 1); }
+  #disco { opacity: var(--fxv, 1); }
+  .fx-p, #ocean { filter: opacity(var(--fxv, 1)); }
 
 
 
@@ -5739,6 +5743,7 @@
       audio.volume = level;
       audio.muted = muted;
     }
+    document.documentElement.style.setProperty('--fxv', muted ? 0 : Math.min(1, level / 0.6));
     var pct = (level * 100).toFixed(1) + '%';
     fill.style.width = pct;
     thumb.style.left = pct;
@@ -6088,7 +6093,7 @@
     if (!fresh || beat < 0) return;
     hueStep = (hueStep + 47) % 360;
     flashEl.style.filter = 'hue-rotate(' + hueStep + 'deg)';
-    if (flashEl.animate) flashEl.animate([{ opacity: 0, offset: 0 }, { opacity: 0.055, offset: 0.18 }, { opacity: 0, offset: 1 }], { duration: 320, easing: 'ease-out' });
+    if (flashEl.animate) flashEl.animate([{ opacity: 0, offset: 0 }, { opacity: 0.055 * (muted ? 0 : Math.min(1, level / 0.6)), offset: 0.18 }, { opacity: 0, offset: 1 }], { duration: 320, easing: 'ease-out' });
   }
 
   /* ===== a different look for each song: things fly in from the sides while it plays ===== */
