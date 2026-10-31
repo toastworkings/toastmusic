@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Toast · Streaming</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Lato:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Asap+Condensed:wght@600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Limelight&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Climate+Crisis&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Audiowide&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Tiny5&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <script>
   (function () {
@@ -70,31 +76,31 @@
   :root[data-theme="light"] #bg { opacity: 0; }
   :root[data-theme="light"] #bg.on { opacity: 0.65; }
   :root[data-theme="light"] #bg::after { background: rgba(255, 255, 255, 0.35); }
-  .col { position: relative; z-index: 1; width: 100%; max-width: 660px; padding: 4px 12px 70px; margin-top: 4px; }
+  .col { position: relative; z-index: 1; width: 100%; max-width: 980px; padding: 4px 14px 70px; margin-top: 4px; }
 
   .roll { opacity: 0; }
 
   .head {
     background: var(--card);
     color: var(--card-fg);
-    border-radius: 12px;
-    padding: 18px 20px 28px;
+    border-radius: 18px;
+    overflow: hidden;
     text-align: center;
-    margin-bottom: 20px;
+    max-width: 760px;
+    margin: 0 auto 24px;
   }
+  .hbody { padding: 26px 28px 30px; }
   .cover {
     display: block;
-    width: 172px;
-    height: 172px;
-    margin: 0 auto 26px;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    max-height: 340px;                 /* how tall the cover may get; the picture is cropped to fit */
     object-fit: cover;
-    border-radius: 14px;
     background: var(--chip);
-    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
   }
   .song { margin: 0; font: 700 31px/1.15 Arial, Helvetica, sans-serif; letter-spacing: 0.2px; overflow-wrap: anywhere; }
-  .artist { margin: 26px 0 0; font-size: 19px; color: var(--card-fg2); }
-  .socials { margin: 24px 0 0; display: flex; justify-content: center; gap: 16px; }
+  .artist { margin: 22px 0 0; font-size: 19px; color: var(--card-fg2); }
+  .socials { margin: 22px 0 0; display: flex; justify-content: center; gap: 30px; }
   .socials a {
     width: 40px;
     height: 40px;
@@ -110,6 +116,24 @@
   }
   .socials a:hover { transform: scale(1.14); }
 
+  #player { display: flex; align-items: center; gap: 14px; margin-top: 24px; }
+  #pl-btn {
+    flex: none; width: 46px; height: 46px; border-radius: 50%; border: 0; cursor: pointer;
+    background: var(--card-fg); color: var(--card); font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.15s ease-out, opacity 0.2s;
+  }
+  #pl-btn:hover:not(:disabled) { transform: scale(1.08); }
+  #pl-btn:disabled { opacity: 0.35; cursor: default; }
+  #pl-btn i { margin-left: 2px; }
+  #pl-btn.playing i { margin-left: 0; }
+  #pl-bar { position: relative; flex: 1; height: 8px; border-radius: 4px; background: var(--chip); cursor: pointer; }
+  #pl-bar::before { content: ''; position: absolute; inset: -10px 0; }
+  #pl-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0; border-radius: 4px; background: var(--card-fg); }
+  #pl-time { flex: none; min-width: 84px; text-align: right; font-size: 13px; color: var(--card-fg2); font-variant-numeric: tabular-nums; }
+  #rain { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; opacity: 0; transition: opacity 0.8s ease-out; }
+  #rain.on { opacity: 0.8; }
+  :root[data-theme="light"] #rain.on { opacity: 0.65; }
   #newest-link { display: inline-block; margin-top: 18px; color: var(--card-fg2); font-size: 14px; }
   #newest-link[hidden] { display: none; }
   .rows { display: flex; flex-direction: column; gap: 20px; }
@@ -140,7 +164,14 @@
     color: #fff;
   }
   .row .tile img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-  .row .nm { flex: 1; padding: 0 18px; }
+  .row .nm { flex: 1; padding: 0 18px; text-transform: uppercase; letter-spacing: 1px; line-height: 1; }
+  @font-face { font-family: 'Tiny5Duo'; src: url('Tiny5Duo.ttf'), url('Tiny5Duo.otf'); }   /* optional: drop this file in the folder to use Tiny5 Duo */
+  .f-soundcloud .nm { font-family: 'Tiny5Duo', 'Tiny5', monospace; font-size: 24px; }
+  .f-newgrounds .nm { font-family: 'Bebas Neue', Impact, sans-serif; font-size: 32px; letter-spacing: 2px; }
+  .f-apple .nm { font-family: 'Asap Condensed', sans-serif; font-weight: 600; font-size: 27px; }
+  .f-spotify .nm { font-family: 'Limelight', serif; font-size: 24px; }
+  .f-deezer .nm { font-family: 'Climate Crisis', sans-serif; font-size: 18px; letter-spacing: 0; }
+  .f-amazon .nm { font-family: 'Audiowide', sans-serif; font-size: 22px; }
   .row .go { padding-right: 20px; font-size: 14px; }
   .rowwrap.off .row { opacity: 0.45; }
 
@@ -265,8 +296,9 @@
   #adm-msg { margin: 8px 0 0; font-size: 12px; opacity: 0.85; }
 
   @media (max-width: 620px) {
-    .col { padding-top: 60px; }
+    .col { padding-top: 56px; }
     .song { font-size: 26px; }
+    .cover { max-height: 320px; }
   }
 </style>
 </head>
@@ -282,17 +314,27 @@
 <iframe id="sc-probe" title="" tabindex="-1" aria-hidden="true" allow="autoplay" style="position:fixed;left:-9999px;top:0;width:300px;height:166px;border:0;opacity:0;pointer-events:none;"></iframe>
 
 <div id="bg" aria-hidden="true"></div>
+<canvas id="rain" aria-hidden="true"></canvas>
+<iframe id="sc-player" title="" tabindex="-1" aria-hidden="true" allow="autoplay" style="position:fixed;left:-9999px;top:0;width:300px;height:166px;border:0;opacity:0;pointer-events:none;"></iframe>
+
 <div class="col">
   <section class="head roll" id="head">
     <img id="cover" class="cover" alt="" hidden>
-    <h1 id="song" class="song">&nbsp;</h1>
-    <p class="artist">Toast</p>
-    <nav class="socials">
-      <a href="https://www.tiktok.com/@toastsians" target="_blank" rel="noopener noreferrer" aria-label="TikTok"><i class="fa-brands fa-tiktok"></i></a>
-      <a href="https://www.youtube.com/@ToastSC" target="_blank" rel="noopener noreferrer" aria-label="YouTube"><i class="fa-brands fa-youtube"></i></a>
-      <a href="https://soundcloud.com/toast_03" target="_blank" rel="noopener noreferrer" aria-label="SoundCloud"><i class="fa-brands fa-soundcloud"></i></a>
-    </nav>
-    <a id="newest-link" href="./" hidden>See the newest release</a>
+    <div class="hbody">
+      <h1 id="song" class="song">&nbsp;</h1>
+      <p class="artist">Toast</p>
+      <nav class="socials">
+        <a href="https://www.tiktok.com/@toastsians" target="_blank" rel="noopener noreferrer" aria-label="TikTok"><i class="fa-brands fa-tiktok"></i></a>
+        <a href="https://www.youtube.com/@ToastSC" target="_blank" rel="noopener noreferrer" aria-label="YouTube"><i class="fa-brands fa-youtube"></i></a>
+        <a href="https://soundcloud.com/toast_03" target="_blank" rel="noopener noreferrer" aria-label="SoundCloud"><i class="fa-brands fa-soundcloud"></i></a>
+      </nav>
+      <div id="player" hidden>
+        <button id="pl-btn" type="button" aria-label="Play" disabled><i class="fa-solid fa-play"></i></button>
+        <div id="pl-bar" role="slider" aria-label="Seek" tabindex="0"><i id="pl-fill"></i></div>
+        <span id="pl-time">0:00</span>
+      </div>
+      <a id="newest-link" href="./" hidden>See the newest release</a>
+    </div>
   </section>
 
   <div id="adm-bar" hidden>
@@ -321,16 +363,16 @@
   // The rows, top to bottom. "check" = needs the admin's checkmark before visitors see it.
   // icon = an image you can drop in this folder (falls back to the coloured tile below it).
   var PLATFORMS = [
-    { id: 'soundcloud', name: 'SoundCloud', icon: 'SCI.jpg',  bg: '#000000', glyph: 'fa-brands fa-soundcloud', url: SC_PROFILE },
-    { id: 'newgrounds', name: 'Newgrounds', icon: 'NG.png',            bg: '#fdc400', glyph: 'NG', check: true, always: true, manual: true,
+    { id: 'soundcloud', name: 'SOUNDCLOUD', icon: 'SCI.jpg',  bg: '#000000', glyph: 'fa-brands fa-soundcloud', url: SC_PROFILE },
+    { id: 'newgrounds', name: 'NEWGROUNDS', icon: 'NG.png',            bg: '#fdc400', glyph: 'NG', check: true, always: true, manual: true,
       artist: 'https://toastsc.newgrounds.com/', host: /^https:\/\/([a-z0-9-]+\.)?newgrounds\.com\// },
-    { id: 'apple',      name: 'Apple Music', icon: 'APmusic.svg',       bg: 'linear-gradient(135deg,#ff5f78,#fa233b)', glyph: 'fa-brands fa-itunes-note', check: true,
+    { id: 'apple',      name: 'APPLE MUSIC', icon: 'APmusic.svg',       bg: 'linear-gradient(135deg,#ff5f78,#fa233b)', glyph: 'fa-brands fa-itunes-note', check: true,
       artist: 'https://music.apple.com/us/artist/toastw/1863226687', host: /^https:\/\/music\.apple\.com\// },
-    { id: 'spotify',    name: 'Spotify', icon: 'spotify.webp',  bg: '#121212', glyph: 'fa-brands fa-spotify', check: true,
+    { id: 'spotify',    name: 'SPOTIFY', icon: 'spotify.webp',  bg: '#121212', glyph: 'fa-brands fa-spotify', check: true,
       artist: 'https://open.spotify.com/artist/1LVkmxubewjyPnMDTd29on', host: /^https:\/\/open\.spotify\.com\// },
-    { id: 'deezer',     name: 'Deezer', icon: 'deezer.png',           bg: '#121216', glyph: 'fa-brands fa-deezer', check: true,
+    { id: 'deezer',     name: 'DEEZER', icon: 'deezer.png',           bg: '#121216', glyph: 'fa-brands fa-deezer', check: true,
       artist: 'https://www.deezer.com/us/artist/363270442', host: /^https:\/\/(www\.)?deezer\.com\// },
-    { id: 'amazon',     name: 'Amazon Music', icon: 'amazonm.png',    bg: '#232f3e', glyph: 'fa-brands fa-amazon', check: true,
+    { id: 'amazon',     name: 'AMAZON MUSIC', icon: 'amazonm.png',    bg: '#232f3e', glyph: 'fa-brands fa-amazon', check: true,
       artist: 'https://www.amazon.com/music/player/artists/B0GBNZZD46/toastw', host: /^https:\/\/(music\.)?amazon\.[a-z.]+\// }
   ];
   /* ================================== */
@@ -381,7 +423,7 @@
     var box = document.getElementById('rows');
     PLATFORMS.forEach(function (p) {
       var w = document.createElement('div');
-      w.className = 'rowwrap roll';
+      w.className = 'rowwrap roll f-' + p.id;
       w.hidden = true;
       var a = document.createElement('a');
       a.className = 'row';
@@ -439,6 +481,8 @@
     var bg = document.getElementById('bg');
     if (cur.art && bg.dataset.art !== cur.art) { bg.dataset.art = cur.art; bg.style.backgroundImage = 'url("' + cur.art.replace(/"/g, '%22') + '")'; }
     bg.classList.toggle('on', !!cur.art);
+    rainSet(cur.art);
+    ensurePlayer();
     PLATFORMS.forEach(function (p) {
       var e = els[p.id];
       if (!p.check) {                                         // SoundCloud is always shown
@@ -475,6 +519,126 @@
       setInfo(p, parts);
     });
   }
+
+
+  /* ---------- the player: plays THIS page's song, the whole thing ---------- */
+  var plW = null, plUrl = '', plDur = 0, plPlaying = false;
+  function fmt(ms) { var t = Math.max(0, Math.floor(ms / 1000)); return Math.floor(t / 60) + ':' + ('0' + (t % 60)).slice(-2); }
+  function plShow(pos) {
+    document.getElementById('pl-fill').style.width = (plDur ? Math.min(100, pos / plDur * 100) : 0) + '%';
+    document.getElementById('pl-time').textContent = fmt(pos) + (plDur ? ' / ' + fmt(plDur) : '');
+  }
+  function plState(on) {
+    plPlaying = on;
+    var b = document.getElementById('pl-btn');
+    b.classList.toggle('playing', on);
+    b.setAttribute('aria-label', on ? 'Pause' : 'Play');
+    b.firstElementChild.className = on ? 'fa-solid fa-pause' : 'fa-solid fa-play';
+  }
+  function ensurePlayer() {
+    if (!window.SC || !SC.Widget || !cur.url || cur.url === SC_PROFILE || plUrl === cur.url) return;
+    plUrl = cur.url;
+    var btn = document.getElementById('pl-btn'), f = document.getElementById('sc-player');
+    document.getElementById('player').hidden = false;
+    btn.disabled = true; plDur = 0; plState(false); plShow(0);
+    function ready() { plW.getDuration(function (d) { plDur = d || 0; plShow(0); btn.disabled = false; }); }
+    var url = 'https://w.soundcloud.com/player/?auto_play=false&hide_related=true&url=' + encodeURIComponent(cur.url);
+    if (plW) { plW.pause(); plW.load(cur.url, { auto_play: false, callback: ready }); return; }
+    f.src = url;
+    plW = SC.Widget(f);
+    var E = SC.Widget.Events;
+    plW.bind(E.READY, ready);
+    plW.bind(E.PLAY, function () { plState(true); });
+    plW.bind(E.PAUSE, function () { plState(false); });
+    plW.bind(E.FINISH, function () { plState(false); plShow(0); });
+    plW.bind(E.PLAY_PROGRESS, function (e) { plShow(e.currentPosition); });
+  }
+  document.getElementById('pl-btn').addEventListener('click', function () { if (plW) plW.toggle(); });
+  document.getElementById('pl-bar').addEventListener('click', function (e) {
+    if (!plW || !plDur) return;
+    var r = this.getBoundingClientRect();
+    plW.seekTo(Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * plDur);
+    plShow(Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * plDur);
+  });
+
+  /* ---------- the foggy window: the blurred cover with rain running down it ---------- */
+  var rain = document.getElementById('rain'), rctx = rain.getContext('2d');
+  var mask = document.createElement('canvas'), mctx = mask.getContext('2d');
+  var sharp = document.createElement('canvas');
+  var rimg = null, rW = 0, rH = 0, RS = 0.5, drops = [], rainRunning = false, lastT = 0, nextBig = 0;
+  var rainReduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function rainBuild() {
+    if (!rimg || !rimg.complete || !rimg.naturalWidth) return;
+    var W = window.innerWidth, H = window.innerHeight;
+    rW = rain.width = mask.width = sharp.width = Math.max(2, Math.round(W * RS));
+    rH = rain.height = mask.height = sharp.height = Math.max(2, Math.round(H * RS));
+    var x = -90 * RS, y = -90 * RS, w = (W + 180) * RS, h = (H + 180) * RS;          // same area as the blurred layer behind
+    var k = Math.max(w / rimg.naturalWidth, h / rimg.naturalHeight), iw = rimg.naturalWidth * k, ih = rimg.naturalHeight * k;
+    var sc = sharp.getContext('2d');
+    var light = document.documentElement.getAttribute('data-theme') === 'light';
+    try { sc.filter = 'blur(4px) saturate(1.3) brightness(' + (light ? 1.05 : 0.7) + ')'; } catch (e) {}
+    sc.drawImage(rimg, x + (w - iw) / 2, y + (h - ih) / 2, iw, ih);
+    mctx.clearRect(0, 0, rW, rH);
+    drops = [];
+    var n = Math.round(rW * rH / 2600);
+    for (var i = 0; i < n; i++) drops.push({ x: Math.random() * rW, y: Math.random() * rH, r: 0.8 + Math.random() * 2, vy: 0, wait: 0, life: 6 + Math.random() * 20, bead: true });
+    rainFrame(performance.now(), true);
+    if (!rainReduce && !rainRunning) { rainRunning = true; requestAnimationFrame(rainLoop); }
+  }
+  function rainFrame(now, still) {
+    var dt = Math.min(0.05, (now - lastT) / 1000 || 0.016); lastT = now;
+    mctx.globalCompositeOperation = 'destination-out';
+    mctx.fillStyle = 'rgba(0,0,0,0.014)';
+    mctx.fillRect(0, 0, rW, rH);                                   // old trails slowly dry up
+    mctx.globalCompositeOperation = 'source-over';
+    mctx.fillStyle = '#fff';
+    if (!still && now > nextBig) {                                 // a new heavy drop forms on the glass
+      drops.push({ x: Math.random() * rW, y: Math.random() * rH * 0.7, r: 3 + Math.random() * 3.5, vy: 0, wait: 0.4 + Math.random() * 2.5, life: 99, bead: false });
+      nextBig = now + 250 + Math.random() * 650;
+    }
+    for (var i = drops.length - 1; i >= 0; i--) {
+      var d = drops[i];
+      if (!still) {
+        if (d.bead) { d.life -= dt; if (d.life <= 0) { d.x = Math.random() * rW; d.y = Math.random() * rH; d.life = 6 + Math.random() * 20; } }
+        else {
+          if (d.wait > 0) { d.wait -= dt; d.r += dt * 0.25; }
+          else {
+            d.vy = Math.min(d.vy + dt * (14 + d.r * 7), 20 + d.r * 18);
+            var step = d.vy * dt;
+            d.y += step; d.x += (Math.random() - 0.5) * 0.35;
+            d.r -= dt * 0.3;                                       // it leaves water behind as it runs
+            if (Math.random() < dt * 0.9) d.wait = 0.15 + Math.random() * 0.5, d.vy *= 0.2;   // stutters like real drops
+            mctx.beginPath(); mctx.arc(d.x, d.y - step / 2, Math.max(0.9, d.r * 0.5), 0, 6.3); mctx.fill();
+            mctx.beginPath(); mctx.arc(d.x, d.y - step, Math.max(0.9, d.r * 0.5), 0, 6.3); mctx.fill();
+          }
+          if (d.r < 1.1 || d.y > rH + 10) { if (d.r >= 1.1 && Math.random() < 0.3) { d.bead = true; d.vy = 0; d.life = 8; continue; } drops.splice(i, 1); continue; }
+        }
+      }
+      mctx.beginPath(); mctx.arc(d.x, d.y, d.r, 0, 6.3); mctx.fill();
+    }
+    rctx.globalCompositeOperation = 'source-over';
+    rctx.clearRect(0, 0, rW, rH);
+    rctx.drawImage(mask, 0, 0);
+    rctx.globalCompositeOperation = 'source-in';
+    rctx.drawImage(sharp, 0, 0);
+    rctx.globalCompositeOperation = 'source-over';
+    rctx.fillStyle = 'rgba(255,255,255,0.35)';                    // a little glint on the bigger drops
+    for (var j = 0; j < drops.length; j++) { var g = drops[j]; if (g.r > 2.4) { rctx.beginPath(); rctx.arc(g.x - g.r * 0.3, g.y - g.r * 0.35, g.r * 0.22, 0, 6.3); rctx.fill(); } }
+  }
+  function rainLoop(now) {
+    if (!document.hidden) rainFrame(now, false); else lastT = now;
+    requestAnimationFrame(rainLoop);
+  }
+  function rainSet(url) {
+    if (!url) { rain.classList.remove('on'); return; }
+    if (rain.dataset.art === url) return;
+    rain.dataset.art = url;
+    rimg = new Image();
+    rimg.onload = function () { rainBuild(); rain.classList.add('on'); };
+    rimg.src = url;
+  }
+  var rsz = null;
+  window.addEventListener('resize', function () { clearTimeout(rsz); rsz = setTimeout(rainBuild, 250); });
 
   /* ---------- admin actions ---------- */
   async function onCheck(p) {
@@ -589,6 +753,7 @@
     sc.src = 'https://w.soundcloud.com/player/api.js';
     sc.onload = function () {
       try {
+        ensurePlayer();
         var probe = document.getElementById('sc-probe');
         probe.src = 'https://w.soundcloud.com/player/?url=' + encodeURIComponent(SC_PROFILE) + '&auto_play=false';
         var w = SC.Widget(probe), got = false;
@@ -659,6 +824,7 @@
     if (t === 'light') root.setAttribute('data-theme', 'light'); else root.removeAttribute('data-theme');
     document.getElementById('t-dark').classList.toggle('on', t !== 'light');
     document.getElementById('t-light').classList.toggle('on', t === 'light');
+    if (typeof rainBuild === 'function') setTimeout(rainBuild, 50);
     try { localStorage.setItem('toast_theme', t); } catch (e) {}
   }
   setTheme(root.getAttribute('data-theme') === 'light' ? 'light' : 'dark');
