@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Toast · Streaming</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Lato:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script>
+  (function () {
+    try { if (localStorage.getItem('toast_theme') === 'light') document.documentElement.setAttribute('data-theme', 'light'); } catch (e) {}
+  })();
+</script>
+<style>
+  :root {
+    --page: #000000;
+    --ui-bg: #151515;
+    --ui-border: #333333;
+    --ui-fg: #ffffff;
+    --ui-hover: #222222;
+    --card: #333335;
+    --card-fg: #ffffff;
+    --card-fg2: rgba(255, 255, 255, 0.85);
+    --chip: #151517;
+    --row: rgba(255, 255, 255, 0.2);
+    --row-hover: rgba(255, 255, 255, 0.3);
+    --row-fg: #ffffff;
+    --ok: #4be07a;
+    --warn: #ffc24b;
+  }
+  :root[data-theme="light"] {
+    --page: #ffffff;
+    --ui-bg: #f3f3f5;
+    --ui-border: #d4d4da;
+    --ui-fg: #141416;
+    --ui-hover: #e6e6ea;
+    --card: #e9e9ed;
+    --card-fg: #141416;
+    --card-fg2: rgba(20, 20, 22, 0.8);
+    --chip: #ffffff;
+    --row: rgba(0, 0, 0, 0.07);
+    --row-hover: rgba(0, 0, 0, 0.13);
+    --row-fg: #141416;
+    --ok: #12a04a;
+    --warn: #b27500;
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--page); }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--page);
+    color: var(--row-fg);
+    font-family: 'Lato', 'Poppins', sans-serif;
+    display: flex;
+    justify-content: center;
+  }
+  .col { width: 100%; max-width: 660px; padding: 4px 12px 70px; margin-top: 4px; }
+
+  .roll { opacity: 0; }
+
+  .head {
+    background: var(--card);
+    color: var(--card-fg);
+    border-radius: 12px;
+    padding: 18px 20px 28px;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .cover {
+    display: block;
+    width: 172px;
+    height: 172px;
+    margin: 0 auto 26px;
+    object-fit: cover;
+    border-radius: 14px;
+    background: var(--chip);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+  }
+  .song { margin: 0; font: 700 31px/1.15 Arial, Helvetica, sans-serif; letter-spacing: 0.2px; overflow-wrap: anywhere; }
+  .artist { margin: 26px 0 0; font-size: 19px; color: var(--card-fg2); }
+  .socials { margin: 24px 0 0; display: flex; justify-content: center; gap: 16px; }
+  .socials a {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--chip);
+    color: var(--card-fg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    text-decoration: none;
+    transition: transform 0.18s ease-out;
+  }
+  .socials a:hover { transform: scale(1.14); }
+
+  .rows { display: flex; flex-direction: column; gap: 20px; }
+  .rowwrap[hidden] { display: none; }
+  .row {
+    display: flex;
+    align-items: center;
+    height: 62px;
+    background: var(--row);
+    color: var(--row-fg);
+    border-radius: 9px;
+    overflow: hidden;
+    text-decoration: none;
+    font-size: 19px;
+    transition: background 0.18s ease-out, transform 0.18s ease-out;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  }
+  .row:hover { background: var(--row-hover); transform: scale(1.012); }
+  .row .tile {
+    position: relative;
+    flex: none;
+    width: 62px;
+    height: 62px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    color: #fff;
+  }
+  .row .tile img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .row .nm { flex: 1; padding: 0 18px; }
+  .row .go { padding-right: 20px; font-size: 14px; }
+  .rowwrap.off .row { opacity: 0.45; }
+
+  /* admin-only strip under each row */
+  .adm {
+    margin-top: 6px;
+    padding: 10px 12px;
+    border: 1px dashed var(--ui-border);
+    border-radius: 9px;
+    font: 500 13px 'Poppins', sans-serif;
+    color: var(--ui-fg);
+    background: var(--ui-bg);
+  }
+  .adm label { display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600; }
+  .adm input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--ok); }
+  .adm .info { margin: 8px 0; opacity: 0.85; line-height: 1.45; }
+  .adm .ok { color: var(--ok); font-weight: 600; }
+  .adm .warn { color: var(--warn); font-weight: 600; }
+  .adm .urlrow { display: flex; gap: 8px; }
+  .adm .u {
+    flex: 1;
+    min-width: 0;
+    padding: 8px 10px;
+    background: transparent;
+    color: var(--ui-fg);
+    border: 1px solid var(--ui-border);
+    border-radius: 8px;
+    font: 500 12px 'Poppins', sans-serif;
+  }
+  .adm .open {
+    padding: 8px 12px;
+    border: 1px solid var(--ui-border);
+    border-radius: 8px;
+    color: var(--ui-fg);
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .adm .open:hover { background: var(--ui-hover); }
+  #adm-bar {
+    margin: 0 0 14px;
+    padding: 10px 12px;
+    border: 1px dashed var(--ui-border);
+    border-radius: 9px;
+    background: var(--ui-bg);
+    color: var(--ui-fg);
+    font: 500 13px 'Poppins', sans-serif;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: space-between;
+  }
+  #adm-bar button { padding: 6px 12px; background: transparent; color: var(--ui-fg); border: 1px solid var(--ui-border); border-radius: 8px; font: 600 12px 'Poppins', sans-serif; cursor: pointer; }
+  #adm-bar button:hover { background: var(--ui-hover); }
+  #adm-bar[hidden], .adm[hidden] { display: none; }
+
+  .ui-btn {
+    position: fixed;
+    top: 16px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 0 14px;
+    background: var(--ui-bg);
+    color: var(--ui-fg);
+    border: 1px solid var(--ui-border);
+    border-radius: 10px;
+    font: 600 14px 'Poppins', sans-serif;
+    text-decoration: none;
+    cursor: pointer;
+    z-index: 20;
+    transition: background 0.15s ease-out;
+  }
+  .ui-btn:hover { background: var(--ui-hover); }
+  #back { left: 16px; }
+  #gear { right: 16px; width: 40px; padding: 0; font-size: 18px; }
+  #gear i { transition: transform 0.4s ease-out; }
+  #gear:hover i { transform: rotate(60deg); }
+  #panel {
+    position: fixed;
+    top: 64px;
+    right: 16px;
+    width: 232px;
+    padding: 12px;
+    background: var(--ui-bg);
+    color: var(--ui-fg);
+    border: 1px solid var(--ui-border);
+    border-radius: 12px;
+    z-index: 20;
+    display: none;
+    font: 500 13px 'Poppins', sans-serif;
+  }
+  #panel.open { display: block; }
+  #panel .lbl { margin: 0 0 8px; opacity: 0.7; }
+  #panel .lbl + .seg + .lbl, #panel .sec { margin-top: 14px; }
+  .seg { display: flex; gap: 6px; }
+  .seg button, #panel .pbtn {
+    flex: 1;
+    padding: 8px 0;
+    background: transparent;
+    color: var(--ui-fg);
+    border: 1px solid var(--ui-border);
+    border-radius: 8px;
+    font: 600 13px 'Poppins', sans-serif;
+    cursor: pointer;
+  }
+  .seg button.on { background: var(--ui-fg); color: var(--page); }
+  #panel .pbtn { width: 100%; margin-top: 6px; }
+  #panel .pbtn:hover { background: var(--ui-hover); }
+  #panel input {
+    width: 100%;
+    margin-top: 6px;
+    padding: 8px 10px;
+    background: transparent;
+    color: var(--ui-fg);
+    border: 1px solid var(--ui-border);
+    border-radius: 8px;
+    font: 500 12px 'Poppins', sans-serif;
+  }
+  #adm-msg { margin: 8px 0 0; font-size: 12px; opacity: 0.85; }
+
+  @media (max-width: 620px) {
+    .col { padding-top: 60px; }
+    .song { font-size: 26px; }
+  }
+</style>
+</head>
+<body>
+
+<a id="back" class="ui-btn" href="../toast/"><i class="fa-solid fa-arrow-left"></i> back</a>
+<button id="gear" class="ui-btn" aria-label="Settings"><i class="fa-solid fa-gear"></i></button>
+<div id="panel">
+  <p class="lbl">Theme</p>
+  <div class="seg"><button id="t-dark">Dark</button><button id="t-light">Light</button></div>
+  <div class="sec">
+    <p class="lbl">Admin</p>
+    <div id="adm-out">
+      <button id="adm-google" class="pbtn" type="button">Sign in with Google</button>
+      <input id="adm-email" type="email" placeholder="email" autocomplete="username">
+      <input id="adm-pass" type="password" placeholder="password" autocomplete="current-password">
+      <button id="adm-login" class="pbtn" type="button">Sign in</button>
+    </div>
+    <div id="adm-in" hidden>
+      <div id="adm-who"></div>
+      <button id="adm-logout" class="pbtn" type="button">Sign out</button>
+    </div>
+    <p id="adm-msg"></p>
+  </div>
+</div>
+
+<iframe id="sc-probe" title="" tabindex="-1" aria-hidden="true" allow="autoplay" style="position:fixed;left:-9999px;top:0;width:300px;height:166px;border:0;opacity:0;pointer-events:none;"></iframe>
+
+<div class="col">
+  <section class="head roll" id="head">
+    <img id="cover" class="cover" alt="" hidden>
+    <h1 id="song" class="song">&nbsp;</h1>
+    <p class="artist">Toast</p>
+    <nav class="socials">
+      <a href="https://www.tiktok.com/@toastsians" target="_blank" rel="noopener noreferrer" aria-label="TikTok"><i class="fa-brands fa-tiktok"></i></a>
+      <a href="https://www.youtube.com/@ToastSC" target="_blank" rel="noopener noreferrer" aria-label="YouTube"><i class="fa-brands fa-youtube"></i></a>
+      <a href="https://soundcloud.com/toast_03" target="_blank" rel="noopener noreferrer" aria-label="SoundCloud"><i class="fa-brands fa-soundcloud"></i></a>
+    </nav>
+  </section>
+
+  <div id="adm-bar" hidden>
+    <span>Admin: check the box under a link once you have opened it and it is the right song.</span>
+    <button id="rescan" type="button">Rescan</button>
+  </div>
+  <div class="rows" id="rows"></div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script>
+  /* ============ SETTINGS ============ */
+  var DB = 'https://submissions-3e3fc-default-rtdb.europe-west1.firebasedatabase.app';
+  var FIREBASE_CONFIG = {
+    apiKey: 'AIzaSyAkmiWMQcdXkSzVPD5YM6qRhj-qOeNH6Jk',
+    authDomain: 'submissions-3e3fc.firebaseapp.com',
+    projectId: 'submissions-3e3fc',
+    appId: '1:495616731806:web:221fa55214b5b365d1e98f'
+  };
+  var ADMIN_EMAIL = 'toast2y0@gmail.com';
+  var SC_PROFILE = 'https://soundcloud.com/toast_03';
+  var APPLE_ARTIST_ID = '1863226687';
+  var DEEZER_ARTIST_ID = '363270442';
+
+  // The rows, top to bottom. "check" = needs the admin's checkmark before visitors see it.
+  // icon = an image you can drop in this folder (falls back to the coloured tile below it).
+  var PLATFORMS = [
+    { id: 'soundcloud', name: 'SoundCloud', icon: '../toast/SCI.jpg',  bg: '#000000', glyph: 'fa-brands fa-soundcloud', url: SC_PROFILE },
+    { id: 'newgrounds', name: 'Newgrounds', icon: 'NGICON.png',        bg: '#fdc400', glyph: 'NG', url: 'https://toastsc.newgrounds.com/' },
+    { id: 'apple',      name: 'Apple Music', icon: 'AMICON.png',       bg: 'linear-gradient(135deg,#ff5f78,#fa233b)', glyph: 'fa-brands fa-itunes-note', check: true,
+      artist: 'https://music.apple.com/us/artist/toastw/1863226687', host: /^https:\/\/music\.apple\.com\// },
+    { id: 'spotify',    name: 'Spotify', icon: '../toast/SICON.png',  bg: '#121212', glyph: 'fa-brands fa-spotify', check: true,
+      artist: 'https://open.spotify.com/artist/1LVkmxubewjyPnMDTd29on', host: /^https:\/\/open\.spotify\.com\// },
+    { id: 'deezer',     name: 'Deezer', icon: 'DZICON.png',           bg: '#121216', glyph: 'fa-brands fa-deezer', check: true,
+      artist: 'https://www.deezer.com/us/artist/363270442', host: /^https:\/\/(www\.)?deezer\.com\// },
+    { id: 'amazon',     name: 'Amazon Music', icon: 'AZICON.png',    bg: '#232f3e', glyph: 'fa-brands fa-amazon', check: true,
+      artist: 'https://www.amazon.com/music/player/artists/B0GBNZZD46/toastw', host: /^https:\/\/(music\.)?amazon\.[a-z.]+\// }
+  ];
+  /* ================================== */
+
+  var cur = { title: '', url: '', art: '', src: '' };   // the newest song (from SoundCloud)
+  var approved = {};                                     // links the admin has checked: {id: {url, title, for, time}}
+  var cand = {};                                         // admin only: links found automatically
+  var dirty = {};
+  var admin = false;
+  var started = false;
+  var fbAuth = null;
+  var els = {};
+
+  /* ---------- tiny helpers ---------- */
+  function norm(s) {
+    return String(s || '').toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '')
+      .replace(/\s*-\s*(single|ep)\s*$/i, '').replace(/[^a-z0-9]+/g, '');
+  }
+  function titlesMatch(a, b) { a = norm(a); b = norm(b); return !!a && !!b && (a === b || a.indexOf(b) >= 0 || b.indexOf(a) >= 0); }
+  function hostOk(p, url) { return !!p.host && p.host.test(String(url || '')); }
+  function getJSON(url) { return fetch(url).then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.json(); }); }
+  function jsonp(url) {
+    return new Promise(function (resolve, reject) {
+      var cb = 'jp' + Math.random().toString(36).slice(2), s = document.createElement('script');
+      var t = setTimeout(function () { done(); reject(new Error('timeout')); }, 10000);
+      function done() { clearTimeout(t); delete window[cb]; s.remove(); }
+      window[cb] = function (d) { done(); resolve(d); };
+      s.onerror = function () { done(); reject(new Error('blocked')); };
+      s.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'callback=' + cb;
+      document.head.appendChild(s);
+    });
+  }
+  async function token() { return fbAuth && fbAuth.currentUser ? await fbAuth.currentUser.getIdToken() : null; }
+  async function fbWrite(method, path, value) {
+    var t = await token();
+    if (!t) throw new Error('not signed in');
+    var r = await fetch(DB + '/' + path + '.json?auth=' + encodeURIComponent(t), { method: method, body: value === undefined ? undefined : JSON.stringify(value) });
+    if (!r.ok) throw new Error('save failed (' + r.status + ')');
+  }
+
+  /* ---------- rows ---------- */
+  function buildRows() {
+    var box = document.getElementById('rows');
+    PLATFORMS.forEach(function (p) {
+      var w = document.createElement('div');
+      w.className = 'rowwrap roll';
+      w.hidden = true;
+      var a = document.createElement('a');
+      a.className = 'row';
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      var tile = document.createElement('span');
+      tile.className = 'tile';
+      tile.style.background = p.bg;
+      if (p.glyph.indexOf('fa-') >= 0) { var g = document.createElement('i'); g.className = p.glyph; tile.appendChild(g); }
+      else { var tx = document.createElement('b'); tx.textContent = p.glyph; tx.style.cssText = 'color:#111;font:700 24px Arial,sans-serif'; tile.appendChild(tx); }
+      var img = document.createElement('img');
+      img.alt = '';
+      img.onerror = function () { img.remove(); };
+      img.src = p.icon;
+      tile.appendChild(img);
+      var nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = p.name;
+      var go = document.createElement('i'); go.className = 'go fa-solid fa-caret-right';
+      a.appendChild(tile); a.appendChild(nm); a.appendChild(go);
+      w.appendChild(a);
+      var e = { wrap: w, a: a };
+      if (p.check) {
+        var adm = document.createElement('div');
+        adm.className = 'adm';
+        adm.hidden = true;
+        adm.innerHTML = '<label><input type="checkbox" class="chk"> <span>Verified: show this link on the site</span></label>' +
+          '<div class="info"></div>' +
+          '<div class="urlrow"><input class="u" type="url" placeholder="paste the link to the song" spellcheck="false"><a class="open" target="_blank" rel="noopener noreferrer">Open</a></div>';
+        w.appendChild(adm);
+        e.adm = adm; e.chk = adm.querySelector('.chk'); e.info = adm.querySelector('.info'); e.u = adm.querySelector('.u'); e.open = adm.querySelector('.open');
+        e.chk.addEventListener('change', function () { onCheck(p); });
+        e.u.addEventListener('input', function () { onEdit(p); });
+      }
+      els[p.id] = e;
+      box.appendChild(w);
+    });
+  }
+
+  function isLive(p) { var ap = approved[p.id]; return !!(ap && ap.url && cur.url && ap.for === cur.url && hostOk(p, ap.url)); }
+
+  function setInfo(p, html, cls) {
+    var e = els[p.id];
+    e.info.textContent = '';
+    (Array.isArray(html) ? html : [[html, cls]]).forEach(function (part) {
+      var s = document.createElement('span'); if (part[1]) s.className = part[1]; s.textContent = part[0]; e.info.appendChild(s);
+    });
+  }
+
+  function render() {
+    document.getElementById('song').textContent = cur.title || ' ';
+    var cv = document.getElementById('cover');
+    if (cur.art) { if (cv.getAttribute('src') !== cur.art) cv.src = cur.art; cv.hidden = false; } else cv.hidden = true;
+    PLATFORMS.forEach(function (p) {
+      var e = els[p.id];
+      if (!p.check) {                                         // SoundCloud + Newgrounds are always shown
+        e.wrap.hidden = false;
+        e.a.href = p.id === 'soundcloud' ? (cur.url || SC_PROFILE) : p.url;
+        return;
+      }
+      var live = isLive(p);
+      e.wrap.hidden = !(live || admin);
+      e.wrap.classList.toggle('off', !live);
+      e.adm.hidden = !admin;
+      if (live) e.a.href = approved[p.id].url;
+      else e.a.href = (e.u.value || '').trim() || '#';
+      if (!admin) return;
+      if (!dirty[p.id]) e.u.value = live ? approved[p.id].url : (cand[p.id] ? cand[p.id].url : '');
+      e.open.href = e.u.value.trim() || p.artist;
+      e.chk.checked = live && e.u.value.trim() === approved[p.id].url;
+      var c = cand[p.id], parts = [];
+      if (live && e.chk.checked) {
+        parts.push(['Live on the site', 'ok']);
+        parts.push([' · verified for "' + cur.title + '"', '']);
+      } else {
+        if (c && c.title) {
+          parts.push(['Found: "' + c.title + '"' + (c.date ? ' (' + String(c.date).slice(0, 10) + ')' : '') + ' ', '']);
+          if (cur.title) parts.push(titlesMatch(c.title, cur.title) ? ['✓ title matches SoundCloud', 'ok'] : ['⚠ title differs from "' + cur.title + '"', 'warn']);
+        } else if (c) parts.push(['Found a link, but no title to compare. Open it to check.', 'warn']);
+        else parts.push(['No link found automatically. Paste the link to the song, open it, then check the box.', '']);
+        if (approved[p.id] && !live) parts.push([' Old approval was for an earlier song.', 'warn']);
+      }
+      setInfo(p, parts);
+    });
+  }
+
+  /* ---------- admin actions ---------- */
+  async function onCheck(p) {
+    var e = els[p.id], url = e.u.value.trim();
+    if (!e.chk.checked) {
+      try { await fbWrite('DELETE', 'streaming/links/' + p.id); delete approved[p.id]; dirty[p.id] = false; } catch (err) { setInfo(p, "Couldn't remove it: " + err.message, 'warn'); }
+      render(); return;
+    }
+    if (!cur.url) { e.chk.checked = false; setInfo(p, 'The newest SoundCloud song has not loaded yet. Try again in a second.', 'warn'); return; }
+    if (!hostOk(p, url)) { e.chk.checked = false; setInfo(p, 'That does not look like a ' + p.name + ' link.', 'warn'); return; }
+    var rec = { url: url, title: (cand[p.id] && cand[p.id].url === url && cand[p.id].title) || '', for: cur.url, time: Date.now() };
+    try { await fbWrite('PUT', 'streaming/links/' + p.id, rec); approved[p.id] = rec; dirty[p.id] = false; }
+    catch (err) { e.chk.checked = false; setInfo(p, "Couldn't save: " + err.message + ". Did you publish the new Firebase rules?", 'warn'); return; }
+    render();
+  }
+  function onEdit(p) {                                        // changing the link takes it off the site until you check it again
+    var e = els[p.id];
+    dirty[p.id] = true;
+    if (e.chk.checked) { e.chk.checked = false; onCheck(p); }
+    else render();
+    if (p.id === 'spotify') probeSpotify(e.u.value.trim());
+  }
+  function probeSpotify(url) {
+    if (!hostOk(PLATFORMS[3], url)) return;
+    getJSON('https://open.spotify.com/oembed?url=' + encodeURIComponent(url)).then(function (d) {
+      if (els.spotify.u.value.trim() !== url) return;
+      cand.spotify = { url: url, title: d.title || '' };
+      render();
+    }).catch(function () {});
+  }
+
+  /* ---------- finding the links automatically (admin only) ---------- */
+  var scanning = false;
+  async function scan() {
+    if (!admin || scanning) return;
+    scanning = true;
+    try {
+      var results = await Promise.allSettled([
+        jsonp('https://itunes.apple.com/lookup?id=' + APPLE_ARTIST_ID + '&entity=album&sort=recent&limit=15&country=us'),
+        jsonp('https://api.deezer.com/artist/' + DEEZER_ARTIST_ID + '/albums?limit=25&output=jsonp')
+      ]);
+      if (results[0].status === 'fulfilled') {
+        var best = null;
+        (results[0].value.results || []).forEach(function (r) {
+          if (r.wrapperType !== 'collection' || !r.collectionViewUrl) return;
+          if (!best || r.releaseDate > best.releaseDate) best = r;
+        });
+        if (best) cand.apple = { url: best.collectionViewUrl.split('?')[0], title: best.collectionName, date: best.releaseDate };
+      }
+      if (results[1].status === 'fulfilled') {
+        var bd = null;
+        ((results[1].value && results[1].value.data) || []).forEach(function (r) { if (!bd || r.release_date > bd.release_date) bd = r; });
+        if (bd) cand.deezer = { url: bd.link, title: bd.title, date: bd.release_date };
+      }
+      render();
+      // Spotify and Amazon have no open lookup, so ask Odesli (song.link) for the matching links
+      var src = (cand.apple && cand.apple.url) || (cand.deezer && cand.deezer.url);
+      if (src) {
+        try {
+          var od = await getJSON('https://api.song.link/v1-alpha.1/links?userCountry=US&url=' + encodeURIComponent(src));
+          function pick(key, id) {
+            var l = od.linksByPlatform && od.linksByPlatform[key];
+            if (!l || !l.url) return;
+            var ent = od.entitiesByUniqueId && od.entitiesByUniqueId[l.entityUniqueId];
+            cand[id] = { url: l.url.split('?')[0], title: ent && ent.title ? ent.title : (cand.apple && cand.apple.title) || '' };
+          }
+          pick('spotify', 'spotify'); pick('amazonMusic', 'amazon');
+          if (!cand.deezer) pick('deezer', 'deezer');
+        } catch (e) { /* the admin can paste those two by hand */ }
+      }
+    } finally { scanning = false; render(); }
+  }
+
+  /* ---------- the newest song, from SoundCloud ---------- */
+  function showSong(r, src) {
+    if (!r || !r.title) return;
+    cur = { title: r.title, url: r.url || SC_PROFILE, art: r.art || '', src: src };
+    render();
+  }
+  function pickNewest(sounds) {
+    if (!sounds || !sounds.length) return null;
+    var best = sounds[0];
+    sounds.forEach(function (t) { if (t && t.created_at && best.created_at && new Date(t.created_at) > new Date(best.created_at)) best = t; });
+    return best;
+  }
+  function loadSoundCloud() {
+    var sc = document.createElement('script');
+    sc.src = 'https://w.soundcloud.com/player/api.js';
+    sc.onload = function () {
+      try {
+        var probe = document.getElementById('sc-probe');
+        probe.src = 'https://w.soundcloud.com/player/?url=' + encodeURIComponent(SC_PROFILE) + '&auto_play=false';
+        var w = SC.Widget(probe), got = false;
+        w.bind(SC.Widget.Events.READY, function () {
+          if (got) return;
+          w.getSounds(function (sounds) {
+            var t = pickNewest(sounds);
+            if (!t) return;
+            got = true;
+            var art = (t.artwork_url || (t.user && t.user.avatar_url) || '').replace('-large', '-t500x500');
+            var r = { title: t.title, url: t.permalink_url || SC_PROFILE, art: art };
+            showSong(r, 'live');
+            try { localStorage.setItem('toast_newest', JSON.stringify(r)); } catch (e) {}
+            if (admin) saveCurrent();
+          });
+        });
+      } catch (e) {}
+    };
+    document.head.appendChild(sc);
+  }
+  var savedCurrent = null;                                    // what the database holds as "the newest song"
+  function saveCurrent() {
+    if (!admin || cur.src !== 'live') return;
+    if (savedCurrent && savedCurrent.url === cur.url && savedCurrent.title === cur.title && savedCurrent.art === cur.art) return;
+    fbWrite('PUT', 'streaming/current', { title: cur.title, url: cur.url, art: cur.art }).then(function () {
+      savedCurrent = { title: cur.title, url: cur.url, art: cur.art };
+    }).catch(function () {});
+  }
+
+  /* ---------- roll-in (everything rises from the bottom, lower items slower) ---------- */
+  function startRoll() {
+    if (started) return;
+    started = true;
+    var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var ease = 'cubic-bezier(0.22, 1, 0.36, 1)', i = 0;
+    document.querySelectorAll('.roll').forEach(function (el) {
+      if (reduce || el.offsetParent === null) { el.style.opacity = 1; return; }
+      var dist = Math.max(window.innerHeight - el.getBoundingClientRect().top, 200) + 40;
+      var a = el.animate([
+        { transform: 'translateY(' + dist + 'px)', opacity: 0, easing: ease },
+        { transform: 'translateY(0)', opacity: 1 }
+      ], { duration: 800 + i * 200, delay: i * 40, easing: 'linear', fill: 'both' });
+      a.onfinish = function () { el.style.opacity = 1; a.cancel(); };
+      i++;
+    });
+  }
+
+  /* ---------- admin sign-in ---------- */
+  function setAdmin(on, email) {
+    admin = !!on;
+    document.getElementById('adm-out').hidden = admin;
+    document.getElementById('adm-in').hidden = !admin;
+    document.getElementById('adm-bar').hidden = !admin;
+    document.getElementById('adm-who').textContent = admin ? 'Signed in as ' + (email || '') : '';
+    render();
+    if (admin) { scan(); saveCurrent(); }
+  }
+  function msg(t) { document.getElementById('adm-msg').textContent = t || ''; }
+  function initAuth() {
+    if (typeof firebase === 'undefined') { msg('Sign-in is not available right now.'); return; }
+    try { firebase.initializeApp(FIREBASE_CONFIG); fbAuth = firebase.auth(); } catch (e) { return; }
+    fbAuth.onAuthStateChanged(function (u) {
+      var ok = !!(u && u.emailVerified && u.email && u.email.toLowerCase() === ADMIN_EMAIL.toLowerCase());
+      if (u && !ok) msg('That account is not the admin account.');
+      else msg('');
+      setAdmin(ok, u && u.email);
+    });
+    document.getElementById('adm-google').onclick = function () {
+      msg('');
+      fbAuth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(function (e) { msg(e.message || 'Sign-in failed'); });
+    };
+    document.getElementById('adm-login').onclick = function () {
+      msg('');
+      fbAuth.signInWithEmailAndPassword(document.getElementById('adm-email').value.trim(), document.getElementById('adm-pass').value)
+        .catch(function (e) { msg(e.message || 'Sign-in failed'); });
+    };
+    document.getElementById('adm-logout').onclick = function () { fbAuth.signOut(); };
+  }
+
+  /* ---------- theme + settings ---------- */
+  var root = document.documentElement, panel = document.getElementById('panel');
+  function setTheme(t) {
+    if (t === 'light') root.setAttribute('data-theme', 'light'); else root.removeAttribute('data-theme');
+    document.getElementById('t-dark').classList.toggle('on', t !== 'light');
+    document.getElementById('t-light').classList.toggle('on', t === 'light');
+    try { localStorage.setItem('toast_theme', t); } catch (e) {}
+  }
+  setTheme(root.getAttribute('data-theme') === 'light' ? 'light' : 'dark');
+  document.getElementById('t-dark').onclick = function () { setTheme('dark'); };
+  document.getElementById('t-light').onclick = function () { setTheme('light'); };
+  document.getElementById('gear').onclick = function (e) { e.stopPropagation(); panel.classList.toggle('open'); };
+  document.addEventListener('click', function (e) { if (!panel.contains(e.target)) panel.classList.remove('open'); });
+  document.getElementById('rescan').onclick = function () { cand = {}; scan(); };
+
+  /* ---------- start ---------- */
+  buildRows();
+  try {                                                       // show the last known song instantly
+    var cached = JSON.parse(localStorage.getItem('toast_newest') || 'null');
+    if (cached && cached.title) showSong(cached, 'cache');
+  } catch (e) {}
+  render();
+  setTimeout(startRoll, 2500);
+  getJSON(DB + '/streaming.json').then(function (d) {
+    d = d || {};
+    approved = d.links || {};
+    if (d.current && d.current.title) { savedCurrent = d.current; if (cur.src !== 'live') showSong(d.current, 'db'); }
+  }).catch(function () {}).then(function () { render(); startRoll(); });
+  loadSoundCloud();
+  initAuth();
+</script>
+</body>
+</html>
