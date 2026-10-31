@@ -110,6 +110,8 @@
   }
   .socials a:hover { transform: scale(1.14); }
 
+  #newest-link { display: inline-block; margin-top: 18px; color: var(--card-fg2); font-size: 14px; }
+  #newest-link[hidden] { display: none; }
   .rows { display: flex; flex-direction: column; gap: 20px; }
   .rowwrap[hidden] { display: none; }
   .row {
@@ -290,6 +292,7 @@
       <a href="https://www.youtube.com/@ToastSC" target="_blank" rel="noopener noreferrer" aria-label="YouTube"><i class="fa-brands fa-youtube"></i></a>
       <a href="https://soundcloud.com/toast_03" target="_blank" rel="noopener noreferrer" aria-label="SoundCloud"><i class="fa-brands fa-soundcloud"></i></a>
     </nav>
+    <a id="newest-link" href="./" hidden>See the newest release</a>
   </section>
 
   <div id="adm-bar" hidden>
@@ -333,7 +336,12 @@
   /* ================================== */
 
   var cur = { title: '', url: '', art: '', src: '' };   // the newest song (from SoundCloud)
-  var approved = {};                                     // links the admin has checked: {id: {url, title, for, time}}
+  var approved = {};                                     // links the admin has checked for THIS page's song: {id: {url, title, time}}
+  var songs = {};                                        // every song ever shown: {slug: {title, url, art, links}}
+  function slugOf(u) { return String(u || '').replace(/[?#].*$/, '').replace(/\/+$/, '').split('/').pop().toLowerCase().replace(/[.$#\[\]\/]/g, '_'); }
+  var viewSlug = '';                                     // set when the address is /streaming/?song=<slug>
+  try { viewSlug = (new URLSearchParams(location.search).get('song') || '').toLowerCase().replace(/[.$#\[\]\/]/g, '_'); } catch (e) {}
+  var archiveMode = false, dbLoaded = false, pendingLive = null;
   var cand = {};                                         // admin only: links found automatically
   var dirty = {};
   var admin = false;
@@ -411,7 +419,7 @@
     });
   }
 
-  function isLive(p) { var ap = approved[p.id]; return !!(ap && ap.url && cur.url && ap.for === cur.url && hostOk(p, ap.url)); }
+  function isLive(p) { var ap = approved[p.id]; return !!(ap && ap.url && hostOk(p, ap.url)); }
 
   function setInfo(p, html, cls) {
     var e = els[p.id];
@@ -422,6 +430,9 @@
   }
 
   function render() {
+    var sg = songs[slugOf(cur.url)];
+    approved = (sg && sg.links) || {};
+    document.getElementById('newest-link').hidden = !archiveMode;
     document.getElementById('song').textContent = cur.title || ' ';
     var cv = document.getElementById('cover');
     if (cur.art) { if (cv.getAttribute('src') !== cur.art) cv.src = cur.art; cv.hidden = false; } else cv.hidden = true;
@@ -460,7 +471,6 @@
           if (cur.title) parts.push(titlesMatch(c.title, cur.title) ? ['✓ title matches SoundCloud', 'ok'] : ['⚠ title differs from "' + cur.title + '"', 'warn']);
         } else if (c) parts.push(['Found a link, but no title to compare. Open it to check.', 'warn']);
         else parts.push([p.manual ? 'Paste the link to the song, open it, then check the box. Until then the row links to your profile.' : 'No link found automatically. Paste the link to the song (the Find button helps), open it, then check the box.', '']);
-        if (approved[p.id] && !live) parts.push([' Old approval was for an earlier song.', 'warn']);
       }
       setInfo(p, parts);
     });
@@ -470,13 +480,19 @@
   async function onCheck(p) {
     var e = els[p.id], url = e.u.value.trim();
     if (!e.chk.checked) {
-      try { await fbWrite('DELETE', 'streaming/links/' + p.id); delete approved[p.id]; dirty[p.id] = false; } catch (err) { setInfo(p, "Couldn't remove it: " + err.message, 'warn'); }
+      try { await fbWrite('DELETE', 'streaming/songs/' + slugOf(cur.url) + '/links/' + p.id); delete approved[p.id]; dirty[p.id] = false; } catch (err) { setInfo(p, "Couldn't remove it: " + err.message, 'warn'); }
       render(); return;
     }
     if (!cur.url) { e.chk.checked = false; setInfo(p, 'The newest SoundCloud song has not loaded yet. Try again in a second.', 'warn'); return; }
     if (!hostOk(p, url)) { e.chk.checked = false; setInfo(p, 'That does not look like a ' + p.name + ' link.', 'warn'); return; }
-    var rec = { url: url, title: (cand[p.id] && cand[p.id].url === url && cand[p.id].title) || '', for: cur.url, time: Date.now() };
-    try { await fbWrite('PUT', 'streaming/links/' + p.id, rec); approved[p.id] = rec; dirty[p.id] = false; }
+    var slug = slugOf(cur.url);
+    var rec = { url: url, title: (cand[p.id] && cand[p.id].url === url && cand[p.id].title) || '', time: Date.now() };
+    try {
+      await fbWrite('PATCH', 'streaming/songs/' + slug, { title: cur.title, url: cur.url, art: cur.art });   // keeps this song's page alive for good
+      await fbWrite('PUT', 'streaming/songs/' + slug + '/links/' + p.id, rec);
+      var sg = songs[slug] || (songs[slug] = { title: cur.title, url: cur.url, art: cur.art });
+      (sg.links = sg.links || {})[p.id] = rec; dirty[p.id] = false;
+    }
     catch (err) { e.chk.checked = false; setInfo(p, "Couldn't save: " + err.message + ". Did you publish the new Firebase rules?", 'warn'); return; }
     render();
   }
@@ -545,8 +561,20 @@
   }
 
   /* ---------- the newest song, from SoundCloud ---------- */
+  function enterArchive() {                                   // an older song's own page
+    archiveMode = true;
+    var o = songs[viewSlug];
+    cur = { title: o.title || '', url: o.url || '', art: o.art || '', src: 'archive' };
+    document.title = 'Toast · ' + cur.title;
+    render();
+  }
   function showSong(r, src) {
-    if (!r || !r.title) return;
+    if (!r || !r.title || archiveMode) return;
+    if (viewSlug && slugOf(r.url) !== viewSlug) {              // this address is for a specific song
+      if (!dbLoaded) { if (src === 'live') pendingLive = r; return; }
+      if (songs[viewSlug]) { enterArchive(); return; }
+      viewSlug = '';                                           // unknown song: just show the newest
+    }
     cur = { title: r.title, url: r.url || SC_PROFILE, art: r.art || '', src: src };
     render();
   }
@@ -583,11 +611,13 @@
   }
   var savedCurrent = null;                                    // what the database holds as "the newest song"
   function saveCurrent() {
-    if (!admin || cur.src !== 'live') return;
+    if (!admin || archiveMode || cur.src !== 'live') return;
     if (savedCurrent && savedCurrent.url === cur.url && savedCurrent.title === cur.title && savedCurrent.art === cur.art) return;
-    fbWrite('PUT', 'streaming/current', { title: cur.title, url: cur.url, art: cur.art }).then(function () {
-      savedCurrent = { title: cur.title, url: cur.url, art: cur.art };
-    }).catch(function () {});
+    var slug = slugOf(cur.url), meta = { title: cur.title, url: cur.url, art: cur.art };
+    fbWrite('PUT', 'streaming/current', meta).then(function () {
+      savedCurrent = meta;
+      return fbWrite('PATCH', 'streaming/songs/' + slug, meta);
+    }).then(function () { songs[slug] = songs[slug] || {}; for (var k in meta) songs[slug][k] = meta[k]; }).catch(function () {});
   }
 
   /* ---------- roll-in (everything rises from the bottom, lower items slower) ---------- */
@@ -613,7 +643,7 @@
     admin = !!on;
     document.getElementById('adm-bar').hidden = !admin;
     render();
-    if (admin) { scan(); saveCurrent(); }
+    if (admin) { if (!archiveMode) scan(); saveCurrent(); }
   }
   function initAuth() {                                       // no sign-in here: if you are logged in on the main page, you are the admin here too
     if (typeof firebase === 'undefined') return;
@@ -640,17 +670,28 @@
 
   /* ---------- start ---------- */
   buildRows();
-  try {                                                       // show the last known song instantly
-    var cached = JSON.parse(localStorage.getItem('toast_newest') || 'null');
-    if (cached && cached.title) showSong(cached, 'cache');
-  } catch (e) {}
+  if (!viewSlug) {
+    try {                                                     // show the last known song instantly
+      var cached = JSON.parse(localStorage.getItem('toast_newest') || 'null');
+      if (cached && cached.title) showSong(cached, 'cache');
+    } catch (e) {}
+  }
   render();
   setTimeout(startRoll, 2500);
   getJSON(DB + '/streaming.json').then(function (d) {
     d = d || {};
-    approved = d.links || {};
-    if (d.current && d.current.title) { savedCurrent = d.current; if (cur.src !== 'live') showSong(d.current, 'db'); }
-  }).catch(function () {}).then(function () { render(); startRoll(); });
+    songs = d.songs || {};
+    var cs = d.current && d.current.url ? slugOf(d.current.url) : '';
+    if (cs && !songs[cs]) songs[cs] = { title: d.current.title, url: d.current.url, art: d.current.art };
+    dbLoaded = true;
+    if (d.current && d.current.title) { savedCurrent = d.current; if (!viewSlug && cur.src !== 'live') showSong(d.current, 'db'); }
+    if (viewSlug) {
+      if (pendingLive) showSong(pendingLive, 'live');
+      else if (songs[viewSlug] && viewSlug !== cs) enterArchive();
+      else if (songs[viewSlug]) showSong(songs[viewSlug], 'db');
+      else { viewSlug = ''; if (d.current) showSong(d.current, 'db'); }
+    }
+  }).catch(function () { dbLoaded = true; viewSlug = ''; }).then(function () { render(); startRoll(); });
   loadSoundCloud();
   initAuth();
 </script>
