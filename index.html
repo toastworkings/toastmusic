@@ -2352,7 +2352,7 @@
       <button id="release-play" type="button" aria-label="play a snippet">&#9654;</button>
       <div id="release-info">
         <div id="release-title">loading...</div>
-        <div id="release-sub"><span id="release-time">preview</span><button id="release-open" type="button">open on SoundCloud</button></div>
+        <div id="release-sub"><span id="release-time">preview</span><button id="release-open" type="button">Stream on all platforms</button></div>
       </div>
     </div>
     <canvas id="release-wave"></canvas>
@@ -4940,7 +4940,7 @@
     if (b && b.blur) b.blur();
   });
   document.getElementById('release-open').addEventListener('click', function () {
-    window.open(relUrl, '_blank', 'noopener,noreferrer');
+    window.open('streaming/', '_blank');
   });
 
   function fmtTime(ms) {
