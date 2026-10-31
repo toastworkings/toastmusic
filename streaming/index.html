@@ -11,6 +11,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Climate+Crisis&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Audiowide&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Tiny5&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Damion&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <script>
   (function () {
@@ -99,7 +100,9 @@
     background: var(--chip);
   }
   .song { margin: 0; font: 700 31px/1.15 Arial, Helvetica, sans-serif; letter-spacing: 0.2px; overflow-wrap: anywhere; }
-  .artist { margin: 22px 0 0; font-size: 19px; color: var(--card-fg2); }
+  .artist { margin: 20px 0 0; font: 400 30px/1.1 'Damion', cursive; color: var(--card-fg2); }
+  .artist a { color: inherit; text-decoration: none; display: inline-block; transition: transform 0.18s ease-out, color 0.18s; }
+  .artist a:hover { transform: scale(1.08); color: var(--card-fg); }
   .socials { margin: 22px 0 0; display: flex; justify-content: center; gap: 30px; }
   .socials a {
     width: 40px;
@@ -324,7 +327,7 @@
     <img id="cover" class="cover" alt="" hidden>
     <div class="hbody">
       <h1 id="song" class="song">&nbsp;</h1>
-      <p class="artist">Toast</p>
+      <p class="artist"><a href="../toast/">Toast</a></p>
       <nav class="socials">
         <a href="https://www.tiktok.com/@toastsians" target="_blank" rel="noopener noreferrer" aria-label="TikTok"><i class="fa-brands fa-tiktok"></i></a>
         <a href="https://www.youtube.com/@ToastSC" target="_blank" rel="noopener noreferrer" aria-label="YouTube"><i class="fa-brands fa-youtube"></i></a>
