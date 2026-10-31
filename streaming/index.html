@@ -275,20 +275,6 @@
 <div id="panel">
   <p class="lbl">Theme</p>
   <div class="seg"><button id="t-dark">Dark</button><button id="t-light">Light</button></div>
-  <div class="sec">
-    <p class="lbl">Admin</p>
-    <div id="adm-out">
-      <button id="adm-google" class="pbtn" type="button">Sign in with Google</button>
-      <input id="adm-email" type="email" placeholder="email" autocomplete="username">
-      <input id="adm-pass" type="password" placeholder="password" autocomplete="current-password">
-      <button id="adm-login" class="pbtn" type="button">Sign in</button>
-    </div>
-    <div id="adm-in" hidden>
-      <div id="adm-who"></div>
-      <button id="adm-logout" class="pbtn" type="button">Sign out</button>
-    </div>
-    <p id="adm-msg"></p>
-  </div>
 </div>
 
 <iframe id="sc-probe" title="" tabindex="-1" aria-hidden="true" allow="autoplay" style="position:fixed;left:-9999px;top:0;width:300px;height:166px;border:0;opacity:0;pointer-events:none;"></iframe>
@@ -623,35 +609,18 @@
   }
 
   /* ---------- admin sign-in ---------- */
-  function setAdmin(on, email) {
+  function setAdmin(on) {
     admin = !!on;
-    document.getElementById('adm-out').hidden = admin;
-    document.getElementById('adm-in').hidden = !admin;
     document.getElementById('adm-bar').hidden = !admin;
-    document.getElementById('adm-who').textContent = admin ? 'Signed in as ' + (email || '') : '';
     render();
     if (admin) { scan(); saveCurrent(); }
   }
-  function msg(t) { document.getElementById('adm-msg').textContent = t || ''; }
-  function goHome() { location.href = '../'; }              // after logging in you land on the main page, still signed in
-  function initAuth() {
-    if (typeof firebase === 'undefined') { msg('Sign-in is not available right now.'); return; }
+  function initAuth() {                                       // no sign-in here: if you are logged in on the main page, you are the admin here too
+    if (typeof firebase === 'undefined') return;
     try { firebase.initializeApp(FIREBASE_CONFIG); fbAuth = firebase.auth(); } catch (e) { return; }
     fbAuth.onAuthStateChanged(function (u) {
-      var ok = !!(u && u.emailVerified && u.email && u.email.toLowerCase() === ADMIN_EMAIL.toLowerCase());
-      msg('');
-      setAdmin(ok, u && u.email);
+      setAdmin(!!(u && u.emailVerified && u.email && u.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()));
     });
-    document.getElementById('adm-google').onclick = function () {
-      msg('');
-      fbAuth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).then(goHome).catch(function (e) { msg(e.message || 'Sign-in failed'); });
-    };
-    document.getElementById('adm-login').onclick = function () {
-      msg('');
-      fbAuth.signInWithEmailAndPassword(document.getElementById('adm-email').value.trim(), document.getElementById('adm-pass').value)
-        .then(goHome).catch(function (e) { msg(e.message || 'Sign-in failed'); });
-    };
-    document.getElementById('adm-logout').onclick = function () { fbAuth.signOut(); };
   }
 
   /* ---------- theme + settings ---------- */
