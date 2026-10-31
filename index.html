@@ -4940,7 +4940,8 @@
     if (b && b.blur) b.blur();
   });
   document.getElementById('release-open').addEventListener('click', function () {
-    window.open('streaming/', '_blank');
+    var slug = (relUrl && relUrl !== SC_PROFILE) ? relUrl.replace(/[?#].*$/, '').replace(/\/+$/, '').split('/').pop().toLowerCase().replace(/[.$#\[\]\/]/g, '_') : '';
+    window.open('streaming/' + (slug ? '?song=' + encodeURIComponent(slug) : ''), '_blank');   // every release has its own streaming page
   });
 
   function fmtTime(ms) {
