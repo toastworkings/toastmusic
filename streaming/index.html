@@ -578,65 +578,82 @@
   var rain = document.getElementById('rain'), rctx = rain.getContext('2d');
   var mask = document.createElement('canvas'), mctx = mask.getContext('2d');
   var sharp = document.createElement('canvas');
-  var rimg = null, rW = 0, rH = 0, RS = 0.5, drops = [], rainRunning = false, lastT = 0, nextBig = 0;
+  var rimg = null, rW = 0, rH = 0, cW = 0, cH = 0, RS = 1, drops = [], rainRunning = false, lastT = 0, nextBig = 0;
   var rainReduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // everything below is worked out in screen pixels (cW x cH); the canvases are drawn at the
+  // screen's real sharpness (RS), so the drops come out smooth instead of blocky
   function rainBuild() {
     if (!rimg || !rimg.complete || !rimg.naturalWidth) return;
-    var W = window.innerWidth, H = window.innerHeight;
-    rW = rain.width = mask.width = sharp.width = Math.max(2, Math.round(W * RS));
-    rH = rain.height = mask.height = sharp.height = Math.max(2, Math.round(H * RS));
-    var x = -90 * RS, y = -90 * RS, w = (W + 180) * RS, h = (H + 180) * RS;          // same area as the blurred layer behind
+    RS = Math.min(window.devicePixelRatio || 1, 1.5);
+    cW = window.innerWidth; cH = window.innerHeight;
+    rW = rain.width = mask.width = sharp.width = Math.max(2, Math.round(cW * RS));
+    rH = rain.height = mask.height = sharp.height = Math.max(2, Math.round(cH * RS));
+    var x = -90, y = -90, w = cW + 180, h = cH + 180;                              // same area as the blurred layer behind
     var k = Math.max(w / rimg.naturalWidth, h / rimg.naturalHeight), iw = rimg.naturalWidth * k, ih = rimg.naturalHeight * k;
     var sc = sharp.getContext('2d');
+    sc.setTransform(RS, 0, 0, RS, 0, 0);
+    sc.imageSmoothingQuality = 'high';
     var light = document.documentElement.getAttribute('data-theme') === 'light';
-    try { sc.filter = 'blur(4px) saturate(1.3) brightness(' + (light ? 1.05 : 0.7) + ')'; } catch (e) {}
+    try { sc.filter = 'blur(' + (5 * RS).toFixed(1) + 'px) saturate(1.3) brightness(' + (light ? 1.05 : 0.72) + ')'; } catch (e) {}
     sc.drawImage(rimg, x + (w - iw) / 2, y + (h - ih) / 2, iw, ih);
-    mctx.clearRect(0, 0, rW, rH);
+    mctx.setTransform(RS, 0, 0, RS, 0, 0);
+    mctx.clearRect(0, 0, cW, cH);
+    mctx.lineCap = 'round';
     drops = [];
-    var n = Math.round(rW * rH / 2600);
-    for (var i = 0; i < n; i++) drops.push({ x: Math.random() * rW, y: Math.random() * rH, r: 0.8 + Math.random() * 2, vy: 0, wait: 0, life: 6 + Math.random() * 20, bead: true });
+    var n = Math.round(cW * cH / 10400);
+    for (var i = 0; i < n; i++) drops.push(bead());
     rainFrame(performance.now(), true);
     if (!rainReduce && !rainRunning) { rainRunning = true; requestAnimationFrame(rainLoop); }
   }
+  function bead() { return { x: Math.random() * cW, y: Math.random() * cH, r: 1.4 + Math.random() * 3.6, vy: 0, wait: 0, life: 6 + Math.random() * 20, bead: true }; }
   function rainFrame(now, still) {
     var dt = Math.min(0.05, (now - lastT) / 1000 || 0.016); lastT = now;
     mctx.globalCompositeOperation = 'destination-out';
-    mctx.fillStyle = 'rgba(0,0,0,0.014)';
-    mctx.fillRect(0, 0, rW, rH);                                   // old trails slowly dry up
+    mctx.fillStyle = 'rgba(0,0,0,' + (0.85 * dt).toFixed(4) + ')';
+    mctx.fillRect(0, 0, cW, cH);                                   // old trails slowly dry up
     mctx.globalCompositeOperation = 'source-over';
-    mctx.fillStyle = '#fff';
+    mctx.fillStyle = mctx.strokeStyle = '#fff';
     if (!still && now > nextBig) {                                 // a new heavy drop forms on the glass
-      drops.push({ x: Math.random() * rW, y: Math.random() * rH * 0.7, r: 3 + Math.random() * 3.5, vy: 0, wait: 0.4 + Math.random() * 2.5, life: 99, bead: false });
+      drops.push({ x: Math.random() * cW, y: Math.random() * cH * 0.7, r: 6 + Math.random() * 7, vy: 0, wait: 0.4 + Math.random() * 2.5, life: 99, bead: false });
       nextBig = now + 250 + Math.random() * 650;
     }
     for (var i = drops.length - 1; i >= 0; i--) {
       var d = drops[i];
       if (!still) {
-        if (d.bead) { d.life -= dt; if (d.life <= 0) { d.x = Math.random() * rW; d.y = Math.random() * rH; d.life = 6 + Math.random() * 20; } }
+        if (d.bead) { d.life -= dt; if (d.life <= 0) drops[i] = d = bead(); }
         else {
-          if (d.wait > 0) { d.wait -= dt; d.r += dt * 0.25; }
+          if (d.wait > 0) { d.wait -= dt; d.r += dt * 0.5; }
           else {
-            d.vy = Math.min(d.vy + dt * (14 + d.r * 7), 20 + d.r * 18);
-            var step = d.vy * dt;
-            d.y += step; d.x += (Math.random() - 0.5) * 0.35;
-            d.r -= dt * 0.3;                                       // it leaves water behind as it runs
-            if (Math.random() < dt * 0.9) d.wait = 0.15 + Math.random() * 0.5, d.vy *= 0.2;   // stutters like real drops
-            mctx.beginPath(); mctx.arc(d.x, d.y - step / 2, Math.max(0.9, d.r * 0.5), 0, 6.3); mctx.fill();
-            mctx.beginPath(); mctx.arc(d.x, d.y - step, Math.max(0.9, d.r * 0.5), 0, 6.3); mctx.fill();
+            d.vy = Math.min(d.vy + dt * (28 + d.r * 7), 40 + d.r * 18);
+            var ox = d.x, oy = d.y;
+            d.y += d.vy * dt; d.x += (Math.random() - 0.5) * 0.7;
+            d.r -= dt * 0.6;                                       // it leaves water behind as it runs
+            if (Math.random() < dt * 0.9) { d.wait = 0.15 + Math.random() * 0.5; d.vy *= 0.2; }   // stutters like real drops
+            mctx.lineWidth = Math.max(1.6, d.r * 0.9);             // the clear trail behind it
+            mctx.beginPath(); mctx.moveTo(ox, oy); mctx.lineTo(d.x, d.y); mctx.stroke();
           }
-          if (d.r < 1.1 || d.y > rH + 10) { if (d.r >= 1.1 && Math.random() < 0.3) { d.bead = true; d.vy = 0; d.life = 8; continue; } drops.splice(i, 1); continue; }
+          if (d.r < 2.2 || d.y > cH + 20) { if (d.r >= 2.2 && Math.random() < 0.3) { d.bead = true; d.vy = 0; d.life = 8; continue; } drops.splice(i, 1); continue; }
         }
       }
-      mctx.beginPath(); mctx.arc(d.x, d.y, d.r, 0, 6.3); mctx.fill();
+      mctx.beginPath(); mctx.arc(d.x, d.y, d.r, 0, 6.2832); mctx.fill();
     }
+    rctx.setTransform(1, 0, 0, 1, 0, 0);
     rctx.globalCompositeOperation = 'source-over';
     rctx.clearRect(0, 0, rW, rH);
     rctx.drawImage(mask, 0, 0);
     rctx.globalCompositeOperation = 'source-in';
     rctx.drawImage(sharp, 0, 0);
     rctx.globalCompositeOperation = 'source-over';
-    rctx.fillStyle = 'rgba(255,255,255,0.35)';                    // a little glint on the bigger drops
-    for (var j = 0; j < drops.length; j++) { var g = drops[j]; if (g.r > 2.4) { rctx.beginPath(); rctx.arc(g.x - g.r * 0.3, g.y - g.r * 0.35, g.r * 0.22, 0, 6.3); rctx.fill(); } }
+    rctx.setTransform(RS, 0, 0, RS, 0, 0);
+    for (var j = 0; j < drops.length; j++) {                       // shading + a little glint so each drop reads as water
+      var g = drops[j];
+      if (g.r < 3.5) continue;
+      rctx.lineWidth = Math.max(1, g.r * 0.16);
+      rctx.strokeStyle = 'rgba(0,0,0,0.22)';
+      rctx.beginPath(); rctx.arc(g.x, g.y, g.r * 0.9, 0.25, Math.PI - 0.25); rctx.stroke();
+      rctx.fillStyle = 'rgba(255,255,255,0.4)';
+      rctx.beginPath(); rctx.ellipse(g.x - g.r * 0.32, g.y - g.r * 0.38, g.r * 0.2, g.r * 0.14, -0.6, 0, 6.2832); rctx.fill();
+    }
   }
   function rainLoop(now) {
     if (!document.hidden) rainFrame(now, false); else lastT = now;
