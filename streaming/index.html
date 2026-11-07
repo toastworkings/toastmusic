@@ -605,8 +605,8 @@
     var t0 = performance.now();
     if (rainReduce) rainFrame(t0, true);
     else {                                                         // run ~8s of rain unseen, so it opens mid-shower
-      lastT = t0 - 8000; nextBig = 0;
-      for (var s = 0; s < 240; s++) rainFrame(t0 - 8000 + s * 33.3, false, true);
+      lastT = nextBig = t0 - 10000;
+      for (var s = 0; s < 300; s++) rainFrame(t0 - 10000 + s * 33.3, false, true);
       lastT = t0;
       rainFrame(t0, false);
     }
@@ -616,13 +616,13 @@
   function rainFrame(now, still, noDraw) {
     var dt = Math.min(0.05, (now - lastT) / 1000 || 0.016); lastT = now;
     mctx.globalCompositeOperation = 'destination-out';
-    mctx.fillStyle = 'rgba(0,0,0,' + (0.85 * dt).toFixed(4) + ')';
+    mctx.fillStyle = 'rgba(0,0,0,' + ((noDraw ? 0.3 : 0.6) * dt).toFixed(4) + ')';   // warm-up dries slower, so older streaks are still there at the start
     mctx.fillRect(0, 0, cW, cH);                                   // old trails slowly dry up
     mctx.globalCompositeOperation = 'source-over';
     mctx.fillStyle = mctx.strokeStyle = '#fff';
     if (!still && now > nextBig) {                                 // a new heavy drop forms on the glass
       drops.push({ x: Math.random() * cW, y: Math.random() * cH * 0.7, r: 6 + Math.random() * 7, vy: 0, wait: 0.4 + Math.random() * 2.5, life: 99, bead: false });
-      nextBig = now + 250 + Math.random() * 650;
+      nextBig = now + (250 + Math.random() * 650) * (noDraw ? 0.35 : 1);
     }
     for (var i = drops.length - 1; i >= 0; i--) {
       var d = drops[i];
