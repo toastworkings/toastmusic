@@ -602,11 +602,18 @@
     drops = [];
     var n = Math.round(cW * cH / 10400);
     for (var i = 0; i < n; i++) drops.push(bead());
-    rainFrame(performance.now(), true);
+    var t0 = performance.now();
+    if (rainReduce) rainFrame(t0, true);
+    else {                                                         // run ~8s of rain unseen, so it opens mid-shower
+      lastT = t0 - 8000; nextBig = 0;
+      for (var s = 0; s < 240; s++) rainFrame(t0 - 8000 + s * 33.3, false, true);
+      lastT = t0;
+      rainFrame(t0, false);
+    }
     if (!rainReduce && !rainRunning) { rainRunning = true; requestAnimationFrame(rainLoop); }
   }
   function bead() { return { x: Math.random() * cW, y: Math.random() * cH, r: 1.4 + Math.random() * 3.6, vy: 0, wait: 0, life: 6 + Math.random() * 20, bead: true }; }
-  function rainFrame(now, still) {
+  function rainFrame(now, still, noDraw) {
     var dt = Math.min(0.05, (now - lastT) / 1000 || 0.016); lastT = now;
     mctx.globalCompositeOperation = 'destination-out';
     mctx.fillStyle = 'rgba(0,0,0,' + (0.85 * dt).toFixed(4) + ')';
@@ -637,6 +644,7 @@
       }
       mctx.beginPath(); mctx.arc(d.x, d.y, d.r, 0, 6.2832); mctx.fill();
     }
+    if (noDraw) return;
     rctx.setTransform(1, 0, 0, 1, 0, 0);
     rctx.globalCompositeOperation = 'source-over';
     rctx.clearRect(0, 0, rW, rH);
