@@ -600,7 +600,7 @@
     mctx.clearRect(0, 0, cW, cH);
     mctx.lineCap = 'round';
     drops = [];
-    var n = Math.round(cW * cH / 10400);
+    var n = Math.round(cW * cH / 17000);
     for (var i = 0; i < n; i++) drops.push(bead());
     var t0 = performance.now();
     if (rainReduce) rainFrame(t0, true);
@@ -621,8 +621,17 @@
     mctx.globalCompositeOperation = 'source-over';
     mctx.fillStyle = mctx.strokeStyle = '#fff';
     if (!still && now > nextBig) {                                 // a new heavy drop forms on the glass
-      drops.push({ x: Math.random() * cW, y: Math.random() * cH * 0.7, r: 6 + Math.random() * 7, vy: 0, wait: 0.4 + Math.random() * 2.5, life: 99, bead: false });
-      nextBig = now + (250 + Math.random() * 650) * (noDraw ? 0.35 : 1);
+      var big = Math.random(), wig = Math.random() < 0.55 ? 0.1 + Math.random() * 0.35 : 0;
+      drops.push({
+        x: Math.random() * cW, y: -20 + Math.random() * cH * 0.85,
+        r: 4 + big * big * 10,                                     // mostly smaller drops, now and then a fat one
+        vy: 0, wait: 0.4 + Math.random() * 2.5, life: 99, bead: false,
+        dx: (Math.random() - 0.5) * 0.5,                           // a slight lean to one side
+        wig: wig, freq: 0.006 + Math.random() * 0.014, ph: Math.random() * 6.28, dist: 0,   // some wander in a curve
+        tw: 0.45 + Math.random() * 0.7,                            // how wide its smear is
+        ta: 0.35 + Math.random() * 0.65                            // and how clear
+      });
+      nextBig = now + (700 + Math.random() * 1300) * (noDraw ? 0.6 : 1);
     }
     for (var i = drops.length - 1; i >= 0; i--) {
       var d = drops[i];
@@ -632,12 +641,19 @@
           if (d.wait > 0) { d.wait -= dt; d.r += dt * 0.5; }
           else {
             d.vy = Math.min(d.vy + dt * (28 + d.r * 7), 40 + d.r * 18);
-            var ox = d.x, oy = d.y;
-            d.y += d.vy * dt; d.x += (Math.random() - 0.5) * 0.7;
+            var ox = d.x, oy = d.y, step = d.vy * dt;
+            d.dist += step;
+            d.y += step;
+            d.x += step * (d.dx + d.wig * Math.sin(d.ph + d.dist * d.freq)) + (Math.random() - 0.5) * 0.4;
             d.r -= dt * 0.6;                                       // it leaves water behind as it runs
-            if (Math.random() < dt * 0.9) { d.wait = 0.15 + Math.random() * 0.5; d.vy *= 0.2; }   // stutters like real drops
-            mctx.lineWidth = Math.max(1.6, d.r * 0.9);             // the clear trail behind it
+            if (Math.random() < dt * 0.9) {                        // stutters like real drops, and may change its lean
+              d.wait = 0.15 + Math.random() * 0.5; d.vy *= 0.2;
+              d.dx = Math.max(-0.6, Math.min(0.6, d.dx + (Math.random() - 0.5) * 0.35));
+            }
+            mctx.globalAlpha = d.ta;
+            mctx.lineWidth = Math.max(1.4, d.r * d.tw);            // the clear smear behind it
             mctx.beginPath(); mctx.moveTo(ox, oy); mctx.lineTo(d.x, d.y); mctx.stroke();
+            mctx.globalAlpha = 1;
           }
           if (d.r < 2.2 || d.y > cH + 20) { if (d.r >= 2.2 && Math.random() < 0.3) { d.bead = true; d.vy = 0; d.life = 8; continue; } drops.splice(i, 1); continue; }
         }
