@@ -1707,6 +1707,20 @@
   }
 
   .acct-btn:hover { background: var(--surface-hover); border-color: var(--border2); }
+  #credits-btn { margin-bottom: 14px; }
+  #credits-text {
+    margin: -6px 0 14px;
+    padding: 10px 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--fg2);
+    white-space: normal;
+    overflow-wrap: break-word;
+  }
+  #credits-text[hidden] { display: none; }
   .acct-btn.primary { background: var(--accent); color: var(--on-accent); font-weight: 700; border-color: var(--fg); }
   .acct-btn.primary:hover { background: var(--accent-hover); }
   .acct-btn.has-pending { border-color: var(--warn); color: var(--warn); }
@@ -2271,6 +2285,9 @@
       <span>Song special effects</span>
       <button id="fx-switch" class="switch" type="button" role="switch" aria-checked="true" aria-label="Song special effects"></button>
     </div>
+    <div class="set-title">About</div>
+    <button id="credits-btn" class="acct-btn" type="button" aria-expanded="false" aria-controls="credits-text">Credits</button>
+    <div id="credits-text" hidden>Hey! this website has been made using CLAUDE, it's all vibe coded because i don't know how to code myself and if i actually dedicated time into learning it i'd probably have to stop music forever for that!</div>
     <div id="account-bar" hidden>
       <div class="set-title">Account</div>
   <span id="account-name" hidden></span>
@@ -2321,12 +2338,6 @@
 </div>
 
 <!-- ====== NOTICE ====== -->
-<div id="notice">
-  <div id="notice-label">all votes have been reset, log in to vote!</div>
-  <button id="notice-btn" type="button" aria-label="Important notice" aria-expanded="false" aria-controls="notice-panel">!</button>
-  <div id="notice-panel" role="tooltip">hey, someone recently raided my website so im implementing more safety measures to not allow that to happen again. IMPORTANT: YOU CAN STILL MAKE SUBMISSIONS WITHOUT LOGGING IN!!!( now likes and comments require signing in, comments will have to be approved by me first)</div>
-</div>
-
 <!-- ====== UNDO POPUP ====== -->
 <button id="undo-popup" type="button" hidden>
   <span id="undo-text">wanna change something? click on me!</span>
@@ -5550,49 +5561,15 @@
     }
   }, true);
 
-  /* ---------- Notice ("!" on the right) ---------- */
-  const notice = document.getElementById('notice');
-  const noticeBtn = document.getElementById('notice-btn');
-  const canHover = !!(window.matchMedia && window.matchMedia('(hover: hover)').matches);
-  let noticeSeen = false;
-  try { noticeSeen = localStorage.getItem('toast_notice_seen') === '1'; } catch (e) {}
-  if (!canHover) notice.classList.add('touch');
-  notice.classList.add(noticeSeen ? 'seen' : 'pulsing');
-
-  // hovering the "!" itself stops the pulsing for good
-  function stopPulse() {
-    if (!notice.classList.contains('pulsing')) return;
-    const now = parseFloat(getComputedStyle(noticeBtn).opacity);
-    noticeBtn.style.opacity = isNaN(now) ? '' : String(now);   // keep where it is, no jump
-    notice.classList.remove('pulsing');
-    notice.classList.add('seen');
-    void noticeBtn.offsetWidth;
-    noticeBtn.style.opacity = '';                               // then ease to its new state
-    try { localStorage.setItem('toast_notice_seen', '1'); } catch (e) {}
-  }
-  noticeBtn.addEventListener('mouseenter', stopPulse);
-  noticeBtn.addEventListener('click', stopPulse);
-  noticeBtn.addEventListener('focus', stopPulse);
-
-  // is the mouse on the right side of the screen?
-  document.addEventListener('mousemove', function (e) {
-    const zone = Math.max(180, window.innerWidth * 0.2);
-    notice.classList.toggle('near', e.clientX >= window.innerWidth - zone);
-  });
-  document.documentElement.addEventListener('mouseleave', function () { notice.classList.remove('near'); });
-  function setNoticeOpen(open) {
-    notice.classList.toggle('open', open);
-    noticeBtn.setAttribute('aria-expanded', String(open));
-  }
-  noticeBtn.addEventListener('click', function () {
-    setNoticeOpen(!notice.classList.contains('open')); // tap support on phones
-  });
-  document.addEventListener('click', function (e) {
-    if (!notice.contains(e.target)) setNoticeOpen(false);
-  });
-  document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') setNoticeOpen(false);
-  });
+  /* ---------- credits (settings) ---------- */
+  (function () {
+    var btn = document.getElementById('credits-btn'), txt = document.getElementById('credits-text');
+    if (!btn || !txt) return;
+    btn.addEventListener('click', function () {
+      txt.hidden = !txt.hidden;
+      btn.setAttribute('aria-expanded', String(!txt.hidden));
+    });
+  })();
 
   /* ---------- start accounts ---------- */
   if (fbAuth) {
