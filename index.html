@@ -1297,6 +1297,134 @@
     cursor: pointer;
   }
 
+  /* ---------- EVENT RESULTS VIEW ---------- */
+  #results-view {
+    min-height: 100vh;
+    padding: 70px 20px 60px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: 'Poppins', sans-serif;
+  }
+  #results-title {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--fg2);
+  }
+  #results-sub { margin: 8px 0 34px; font-size: 13px; color: var(--fg3); text-align: center; }
+  #podium {
+    width: 100%;
+    max-width: 980px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-areas: "p2 p1 p3";
+    gap: 26px;
+    align-items: start;
+  }
+  .rs { display: flex; flex-direction: column; align-items: center; min-width: 0; }
+  .rs.r1 { grid-area: p1; }
+  .rs.r2 { grid-area: p2; margin-top: 120px; }
+  .rs.r3 { grid-area: p3; margin-top: 120px; }
+  .rs-rank { margin-bottom: 8px; font-size: 12px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--fg3); }
+  .rs.r1 .rs-rank { color: var(--fg); }
+  .rs-barwrap { position: relative; width: 100%; margin-bottom: 14px; }
+  .rs-bar {
+    position: relative;
+    display: flex;
+    width: 100%;
+    height: 34px;
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--surface3);
+    border: 1px solid var(--border);
+    box-sizing: border-box;
+  }
+  .rs-for, .rs-against {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    font-size: 12px;
+    font-weight: 700;
+    transition: flex-grow 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .rs-for { flex: 1 1 0; justify-content: flex-start; padding: 0 0 0 10px; background: rgb(var(--up)); color: #fff; }
+  .rs-against { flex: 1 1 0; justify-content: flex-end; padding: 0 10px 0 0; background: rgb(var(--down)); color: #fff; }
+  :root[data-theme="light"] .rs-for, :root[data-theme="light"] .rs-against { color: #141416; }
+  .rs-bar.empty .rs-for, .rs-bar.empty .rs-against { background: transparent; color: var(--fg3); }
+  .rs-bar.empty .rs-for { justify-content: center; padding: 0; }
+  .rs-card {
+    width: 100%;
+    min-height: 120px;
+    box-sizing: border-box;
+    padding: 22px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    background: var(--surface);
+    color: var(--fg);
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    font-size: 17px;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+    box-shadow: 0 8px 28px var(--shadow-soft);
+  }
+  .rs.r1 .rs-card { min-height: 150px; font-size: 20px; border-color: var(--border2); box-shadow: 0 8px 34px var(--shadow-soft), 0 0 0 1px var(--glow); }
+  .rs-votes { display: flex; gap: 10px; margin-top: 14px; }
+  .rs-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 14px;
+    background: var(--surface2);
+    color: var(--fg);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font: 600 13px 'Poppins', sans-serif;
+    cursor: pointer;
+    transition: transform 0.15s ease-out, background 0.15s, border-color 0.15s;
+  }
+  .rs-btn:hover { transform: scale(1.06); background: var(--surface-hover); }
+  .rs-btn svg { width: 16px; height: 16px; }
+  .rs-btn.up.on { background: rgb(var(--up)); border-color: rgb(var(--up)); color: #fff; }
+  .rs-btn.down.on { background: rgb(var(--down)); border-color: rgb(var(--down)); color: #fff; }
+  :root[data-theme="light"] .rs-btn.on { color: #141416; }
+  .rs-fly {
+    position: absolute;
+    top: 6px;
+    font-size: 11px;
+    line-height: 1;
+    pointer-events: none;
+    z-index: 2;
+  }
+  #results-empty { grid-column: 1 / -1; text-align: center; color: var(--fg3); font-size: 14px; }
+  #results-vote {
+    margin-top: 70px;
+    padding: 18px 34px;
+    background: var(--surface);
+    color: var(--fg);
+    border: 1px solid var(--border2);
+    border-radius: 22px;
+    font: 700 20px/1.35 'Poppins', sans-serif;
+    text-align: center;
+    cursor: pointer;
+    box-shadow: 0 8px 28px var(--shadow-soft);
+    transition: transform 0.18s ease-out, background 0.18s;
+  }
+  #results-vote:hover { transform: scale(1.04); background: var(--surface-hover); }
+  @media (max-width: 760px) {
+    #podium { grid-template-columns: 1fr; grid-template-areas: "p1" "p2" "p3"; max-width: 460px; }
+    .rs.r2, .rs.r3 { margin-top: 10px; }
+    #results-vote { margin-top: 44px; font-size: 17px; }
+  }
+
   /* ---------- SUBMISSIONS VIEW ---------- */
   #submissions-view,
   #comments-view {
@@ -2178,6 +2306,15 @@
   </div>
 </div>
 
+<!-- ====== EVENT RESULTS PAGE ====== -->
+<div id="results-view" hidden>
+  <button id="results-back-btn" class="back-btn" type="button">&larr; back</button>
+  <h2 id="results-title">Event Results</h2>
+  <p id="results-sub">the top 3 submissions. do you want to see them done?</p>
+  <div id="podium"></div>
+  <button id="results-vote" type="button">Don't agree with the Result?<br>Vote here</button>
+</div>
+
 <!-- ====== SUBMISSIONS PAGE ====== -->
 <div id="submissions-view" hidden>
   <button id="back-btn" class="back-btn" type="button">&larr; back</button>
@@ -2350,7 +2487,7 @@
 
 <!-- ====== HOVER TAB ====== -->
 <div id="tab-zone">
-  <button id="submissions-tab" type="button">submissions</button>
+  <button id="submissions-tab" type="button">event results</button>
 </div>
 
 <!-- ====== NEWEST RELEASE PLAYER ====== -->
@@ -3310,6 +3447,8 @@
   const subList = document.getElementById('submissions-list');
   const commentsView = document.getElementById('comments-view');
   const tabZone = document.getElementById('tab-zone');
+  const resultsView = document.getElementById('results-view');
+  const podium = document.getElementById('podium');
 
   let currentList = [];
   let sortMode = 'top';
@@ -3928,13 +4067,15 @@
 
   async function showSubmissions() {
     if (rolling) return;
+    const fromView = resultsView.hidden ? mainView : resultsView;   // the main page, or the results page
+    stopResultsFx();
     liveReady = false;
     tabZone.hidden = true;
     commentsView.hidden = true;
-    const animate = !reduceMotion && mainView.animate && !mainView.hidden;
+    const animate = !reduceMotion && fromView.animate && !fromView.hidden;
 
     if (!animate) {
-      mainView.hidden = true;
+      fromView.hidden = true;
       subView.hidden = false;
       window.scrollTo(0, 0);
       subList.textContent = '';
@@ -3956,7 +4097,7 @@
     try { currentList = await loadSubmissions(); }
     catch (e) {
       rolling = false;
-      mainView.hidden = true;
+      fromView.hidden = true;
       subView.hidden = false;
       subList.textContent = '';
       const bad = document.createElement('div');
@@ -3979,11 +4120,11 @@
     subView.style.overflow = 'clip';
 
     // The main page lifts off the top, pushed up by the list.
-    mainView.style.position = 'fixed';
-    mainView.style.left = '0';
-    mainView.style.right = '0';
-    mainView.style.top = '0';
-    mainView.style.zIndex = '1';
+    fromView.style.position = 'fixed';
+    fromView.style.left = '0';
+    fromView.style.right = '0';
+    fromView.style.top = '0';
+    fromView.style.zIndex = '1';
 
     const EASE = 'cubic-bezier(0.16, 1, 0.3, 1)';   // fast start, long smooth glide
     const cards = Array.prototype.slice.call(subList.querySelectorAll('.submission'));
@@ -4006,7 +4147,7 @@
       );
     });
 
-    const mainAnim = mainView.animate(
+    const mainAnim = fromView.animate(
       [{ transform: 'translateY(0)' }, { transform: 'translateY(' + (-(H + 60)) + 'px)' }],
       { duration: 850, easing: EASE, fill: 'forwards' }
     );
@@ -4015,12 +4156,12 @@
 
     const finish = function () {
       if (myToken !== rollToken) return;   // you already left (back button / opened a submission)
-      mainView.hidden = true;
-      mainView.style.position = '';
-      mainView.style.left = '';
-      mainView.style.right = '';
-      mainView.style.top = '';
-      mainView.style.zIndex = '';
+      fromView.hidden = true;
+      fromView.style.position = '';
+      fromView.style.left = '';
+      fromView.style.right = '';
+      fromView.style.top = '';
+      fromView.style.zIndex = '';
       mainAnim.cancel();
       subView.style.position = '';
       subView.style.zIndex = '';
@@ -4040,6 +4181,8 @@
     // where the list really is on screen right now (measured before anything is reset,
     // so going back in the middle of the roll-out or after an early scroll can't misplace it)
     const subTopNow = subView.hidden ? 0 : subView.getBoundingClientRect().top;
+    const resTopNow = resultsView.hidden ? 0 : resultsView.getBoundingClientRect().top;
+    stopResultsFx();
     rollToken++;
     rolling = false;
     resetRollStyles();
@@ -4048,6 +4191,15 @@
     clearToasts();
 
     // The page you are on rolls down and the previous one slides in from above.
+    if (canRollBack() && !resultsView.hidden && subView.hidden && commentsView.hidden) {
+      resultsView.getAnimations({ subtree: true }).forEach(function (an) { an.cancel(); });
+      mainView.hidden = false;
+      rollDown(resultsView, mainView, -resTopNow, 0, function () {
+        tabZone.hidden = false;
+        window.scrollTo(0, 0);
+      });
+      return;
+    }
     if (canRollBack() && !subView.hidden && commentsView.hidden) {
       subView.getAnimations({ subtree: true }).forEach(function (an) { an.cancel(); });
       mainView.hidden = false;
@@ -4059,11 +4211,239 @@
     }
 
     subView.hidden = true;
+    resultsView.hidden = true;
     commentsView.hidden = true;
     mainView.hidden = false;
     tabZone.hidden = false;
     window.scrollTo(0, 0);
   }
+
+
+  /* ---------- EVENT RESULTS: the top 3, and do people agree? ---------- */
+  let resultsList = [];
+  let fxTimer = null;
+  const THUMB_UP = 'M2 21h4V9H2v12zm20-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L13.17 1 6.59 7.59C6.22 7.95 6 8.45 6 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z';
+  function thumb(down) {
+    const ns = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    if (down) svg.style.transform = 'rotate(180deg)';
+    const p = document.createElementNS(ns, 'path');
+    p.setAttribute('d', THUMB_UP);
+    p.setAttribute('fill', 'currentColor');
+    svg.appendChild(p);
+    return svg;
+  }
+  function agreeCounts(s) {
+    const a = s.agree || {};
+    let up = 0, down = 0;
+    Object.keys(a).forEach(function (k) { if (a[k] === 1) up++; else if (a[k] === -1) down++; });
+    return { up: up, down: down };
+  }
+  async function saveAgree(id, value) {
+    if (DB_URL) {
+      const token = await getToken();
+      const url = dbBase + '/agree/' + encodeURIComponent(id) + '/' + encodeURIComponent(voterId) + '.json' + qs(token);
+      const res = value === 0 ? await fetch(url, { method: 'DELETE' }) : await fetch(url, { method: 'PUT', body: JSON.stringify(value) });
+      if (!res.ok) throw new Error('Vote failed');
+      return;
+    }
+    localPut('agree/' + id + '/' + voterId, value === 0 ? null : value);
+  }
+  function paintResult(s) {
+    const e = s._r;
+    if (!e) return;
+    const c = agreeCounts(s), total = c.up + c.down;
+    e.bar.classList.toggle('empty', total === 0);
+    if (total === 0) {
+      e.forEl.style.flexGrow = 1; e.againstEl.style.flexGrow = 0;
+      e.forEl.textContent = 'no votes yet'; e.againstEl.textContent = '';
+    } else {
+      e.forEl.style.flexGrow = c.up; e.againstEl.style.flexGrow = c.down;
+      const wide = e.bar.offsetWidth || 300;
+      e.forEl.textContent = c.up && c.up / total * wide > 70 ? c.up + ' for' : (c.up && c.up / total * wide > 22 ? String(c.up) : '');
+      e.againstEl.textContent = c.down && c.down / total * wide > 90 ? c.down + ' against' : (c.down && c.down / total * wide > 22 ? String(c.down) : '');
+    }
+    const mine = s.agree && voterId ? s.agree[voterId] : 0;
+    e.upBtn.classList.toggle('on', mine === 1);
+    e.downBtn.classList.toggle('on', mine === -1);
+    e.upN.textContent = c.up;
+    e.downN.textContent = c.down;
+    e.upBtn.setAttribute('aria-pressed', String(mine === 1));
+    e.downBtn.setAttribute('aria-pressed', String(mine === -1));
+  }
+  async function castAgree(s, value) {
+    if (!requireAuth('log in or sign up to vote')) return;
+    if (s._busy) return;
+    const before = Object.assign({}, s.agree || {});
+    const prev = before[voterId] === 1 ? 1 : (before[voterId] === -1 ? -1 : 0);
+    const next = prev === value ? 0 : value;          // same button again = take the vote back
+    s.agree = Object.assign({}, before);
+    if (next === 0) delete s.agree[voterId]; else s.agree[voterId] = next;
+    s._busy = true;
+    paintResult(s);
+    if (next !== 0) playSound(next === 1 ? 'up' : 'down');
+    try { await saveAgree(s.id, next); }
+    catch (err) { s.agree = before; paintResult(s); }
+    s._busy = false;
+  }
+  function buildPodium() {
+    podium.textContent = '';
+    if (!resultsList.length) {
+      const em = document.createElement('div');
+      em.id = 'results-empty';
+      em.textContent = 'no results yet';
+      podium.appendChild(em);
+      return;
+    }
+    const names = ['1st place', '2nd place', '3rd place'];
+    resultsList.forEach(function (s, i) {
+      const slot = document.createElement('div');
+      slot.className = 'rs r' + (i + 1);
+      const rank = document.createElement('div');
+      rank.className = 'rs-rank';
+      rank.textContent = names[i];
+      const wrap = document.createElement('div');
+      wrap.className = 'rs-barwrap';
+      const bar = document.createElement('div');
+      bar.className = 'rs-bar';
+      bar.setAttribute('aria-label', 'votes for and against');
+      const forEl = document.createElement('span'); forEl.className = 'rs-for';
+      const againstEl = document.createElement('span'); againstEl.className = 'rs-against';
+      bar.appendChild(forEl); bar.appendChild(againstEl);
+      wrap.appendChild(bar);
+      const card = document.createElement('div');
+      card.className = 'rs-card';
+      card.textContent = s.text;
+      const votes = document.createElement('div');
+      votes.className = 'rs-votes';
+      const upBtn = document.createElement('button');
+      upBtn.type = 'button'; upBtn.className = 'rs-btn up'; upBtn.setAttribute('aria-label', 'I want to see this done');
+      const upN = document.createElement('span');
+      upBtn.appendChild(thumb(false)); upBtn.appendChild(upN);
+      const downBtn = document.createElement('button');
+      downBtn.type = 'button'; downBtn.className = 'rs-btn down'; downBtn.setAttribute('aria-label', "I don't want to see this done");
+      const downN = document.createElement('span');
+      downBtn.appendChild(thumb(true)); downBtn.appendChild(downN);
+      upBtn.addEventListener('click', function () { castAgree(s, 1); });
+      downBtn.addEventListener('click', function () { castAgree(s, -1); });
+      votes.appendChild(upBtn); votes.appendChild(downBtn);
+      slot.appendChild(rank); slot.appendChild(wrap); slot.appendChild(card); slot.appendChild(votes);
+      podium.appendChild(slot);
+      s._r = { slot: slot, wrap: wrap, bar: bar, forEl: forEl, againstEl: againstEl, upBtn: upBtn, downBtn: downBtn, upN: upN, downN: downN };
+    });
+    resultsList.forEach(paintResult);
+  }
+  async function loadResults() {
+    const all = await loadSubmissions();
+    const agreeAll = (await dbGet('agree').catch(function () { return null; })) || {};
+    resultsList = all.slice()
+      .sort(function (a, b) { return (b.score - a.score) || ((a.time || 0) - (b.time || 0)); })
+      .slice(0, 3);
+    resultsList.forEach(function (s) { s.agree = Object.assign({}, agreeAll[s.id] || {}); });
+  }
+
+  // tiny faint checkmarks drift out of the green part, little x's out of the red part
+  function resultsFxTick() {
+    if (resultsView.hidden || document.hidden) return;
+    resultsList.forEach(function (s) {
+      const e = s._r;
+      if (!e || Math.random() < 0.45) return;
+      const c = agreeCounts(s), total = c.up + c.down;
+      if (!total) return;
+      const good = Math.random() < c.up / total;
+      const w = e.bar.offsetWidth, split = w * c.up / total;
+      const x = good ? Math.random() * split : split + Math.random() * (w - split);
+      const el = document.createElement('span');
+      el.className = 'rs-fly';
+      el.textContent = good ? '✅' : '❌';
+      el.style.left = (x - 6) + 'px';
+      e.wrap.appendChild(el);
+      const drift = (Math.random() - 0.5) * 26, rise = 28 + Math.random() * 26, dur = 1100 + Math.random() * 600;
+      const an = el.animate([
+        { transform: 'translate(0,0) scale(0.6)', opacity: 0 },
+        { transform: 'translate(' + drift * 0.4 + 'px,' + (-rise * 0.35) + 'px) scale(1)', opacity: 0.38, offset: 0.25 },
+        { transform: 'translate(' + drift + 'px,' + (-rise) + 'px) scale(0.85)', opacity: 0 }
+      ], { duration: dur, easing: 'ease-out' });
+      an.onfinish = function () { el.remove(); };
+    });
+  }
+  function startResultsFx() {
+    stopResultsFx();
+    if (reduceMotion) return;
+    fxTimer = setInterval(resultsFxTick, 230);
+  }
+  function stopResultsFx() {
+    if (fxTimer) clearInterval(fxTimer);
+    fxTimer = null;
+    podium.querySelectorAll('.rs-fly').forEach(function (n) { n.remove(); });
+  }
+
+  async function showResults() {
+    if (rolling) return;
+    tabZone.hidden = true;
+    commentsView.hidden = true;
+    subView.hidden = true;
+    const animate = !reduceMotion && mainView.animate && !mainView.hidden;
+    rolling = true;
+    const myToken = ++rollToken;
+    window.scrollTo(0, 0);
+    podium.textContent = '';
+    try { await loadResults(); }
+    catch (err) {
+      resultsList = [];
+    }
+    if (myToken !== rollToken) return;
+    resultsView.hidden = false;
+    buildPodium();
+    if (!resultsList.length && podium.firstChild) podium.firstChild.textContent = resultsList.length ? '' : "couldn't load the results (or there are none yet)";
+    if (!animate) {
+      mainView.hidden = true;
+      rolling = false;
+      startResultsFx();
+      return;
+    }
+    const H = window.innerHeight, EASE = 'cubic-bezier(0.16, 1, 0.3, 1)';
+    resultsView.style.position = 'relative';
+    resultsView.style.zIndex = '2';
+    resultsView.style.overflow = 'clip';
+    mainView.style.position = 'fixed';
+    mainView.style.left = '0';
+    mainView.style.right = '0';
+    mainView.style.top = '0';
+    mainView.style.zIndex = '1';
+    // first place rises fastest, then 2nd and 3rd, then the vote button
+    const order = [podium.querySelector('.r1'), podium.querySelector('.r2'), podium.querySelector('.r3'), document.getElementById('results-vote')].filter(Boolean);
+    let longest = 900;
+    order.forEach(function (el, i) {
+      const dur = 780 + i * 130;
+      longest = Math.max(longest, dur);
+      el.animate([{ transform: 'translateY(' + (H + 60) + 'px)' }, { transform: 'translateY(0)' }], { duration: dur, easing: EASE, fill: 'backwards' });
+    });
+    [document.getElementById('results-title'), document.getElementById('results-sub'), document.getElementById('results-back-btn')].forEach(function (el) {
+      el.animate([{ opacity: 0 }, { opacity: 0, offset: 0.6 }, { opacity: 1 }], { duration: 1000, easing: 'ease-out', fill: 'backwards' });
+    });
+    const mainAnim = mainView.animate([{ transform: 'translateY(0)' }, { transform: 'translateY(' + (-(H + 60)) + 'px)' }], { duration: 850, easing: EASE, fill: 'forwards' });
+    playSound('sw');
+    const finish = function () {
+      if (myToken !== rollToken) return;
+      mainView.hidden = true;
+      mainView.style.position = '';
+      mainView.style.left = '';
+      mainView.style.right = '';
+      mainView.style.top = '';
+      mainView.style.zIndex = '';
+      mainAnim.cancel();
+      resultsView.style.position = '';
+      resultsView.style.zIndex = '';
+      resultsView.style.overflow = '';
+      rolling = false;
+      resultsList.forEach(paintResult);    // the bars know their real width now
+      startResultsFx();
+    };
+    mainAnim.finished.then(function () { setTimeout(finish, Math.max(0, longest - 850) + 30); }, finish);
+  }
+  window.addEventListener('resize', function () { if (!resultsView.hidden) resultsList.forEach(paintResult); });
 
   /* ---------- Live activity popups ---------- */
   const toastStack = document.getElementById('toast-stack');
@@ -5581,7 +5961,9 @@
   }
   updateAuthUI();
 
-  document.getElementById('submissions-tab').addEventListener('click', showSubmissions);
+  document.getElementById('submissions-tab').addEventListener('click', showResults);
+  document.getElementById('results-back-btn').addEventListener('click', showMain);
+  document.getElementById('results-vote').addEventListener('click', showSubmissions);
   document.getElementById('back-btn').addEventListener('click', showMain);
   document.getElementById('comments-back-btn').addEventListener('click', closeComments);
   document.addEventListener('keydown', function (e) {
@@ -5589,7 +5971,7 @@
     if (!authModal.hidden) { closeAuth(); return; }
     if (!reviewModal.hidden) { reviewModal.hidden = true; return; }
     if (!commentsView.hidden) closeComments();
-    else if (!subView.hidden) showMain();
+    else if (!subView.hidden || !resultsView.hidden) showMain();
   });
 </script>
 
