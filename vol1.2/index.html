@@ -79,10 +79,19 @@
     gap: 14px;
     padding: 16px 22px;
     cursor: pointer;
+    position: relative;
     background: var(--row);
-    border: 1px solid var(--border);
     border-radius: 12px;
-    transition: background 0.15s ease-out;
+    transition: background 0.3s ease-out;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .echo {
+    position: absolute;
+    inset: 0;
+    border-radius: 12px;
+    border: 2px solid var(--fg);
+    pointer-events: none;
   }
   .smp:hover, .smp.playing { background: var(--row-hover); }
   .logo { flex: none; width: 44px; height: 44px; border-radius: 6px; object-fit: cover; background: var(--btn); }
@@ -119,9 +128,37 @@
     .name { flex-basis: calc(100% - 110px); }
     .wave { flex: 1; width: auto; }
   }
+  html, body { transition: background-color 0.35s ease, color 0.35s ease; }
+  .wrap { position: relative; z-index: 2; }
+  #space, #glass { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  #space {
+    z-index: 0;
+    opacity: 0;
+    transition: opacity 1.2s ease;
+    background:
+      radial-gradient(ellipse 60% 45% at 18% 30%, rgba(110, 60, 200, 0.35), transparent 70%),
+      radial-gradient(ellipse 50% 40% at 82% 70%, rgba(30, 110, 200, 0.3), transparent 70%),
+      radial-gradient(ellipse 40% 30% at 60% 20%, rgba(200, 60, 140, 0.18), transparent 70%),
+      #03030a;
+  }
+  #space.on { opacity: 1; }
+  #glass { z-index: 1; }
+  /* while space is showing, the page uses its dark colours even in light mode */
+  :root.space-on {
+    --fg: #ffffff;
+    --fg2: #a5a5b5;
+    --row: rgba(14, 14, 24, 0.72);
+    --row-hover: rgba(26, 26, 42, 0.82);
+    --btn: #2c2c3a;
+    --wave: #555566;
+    --wave-on: #ffffff;
+  }
+  :root.space-on h1 { color: #03030a; }
 </style>
 </head>
 <body>
+<div id="space" aria-hidden="true"><canvas id="stars" style="width:100%;height:100%;display:block"></canvas></div>
+<canvas id="glass" aria-hidden="true"></canvas>
 <div class="wrap">
   <h1>TOAST VOL1.2</h1>
   <div class="desc">
@@ -139,11 +176,11 @@
 <script>
   /* ====== the samples shown on the page: file names exactly as they are in this folder ====== */
   var SECTIONS = [
-    { title: 'kicks!', files: ['TOAST_KICKS _BLOCK.wav', 'TOAST_KICKS _PURRRRRING.wav'] },
-    { title: 'snares!!', files: ['TOAST_SNARES _glitchy.wav', 'TOAST_SNARES _SLIMEDOUT.wav'] },
-    { title: 'Percussion!!!', files: ["TOAST_TOMS_ who's tom.wav"] },
-    { title: 'even effects!', files: ['TOAST_FX_bass slide1.wav', 'TOAST_FX_scrape2.wav', 'TOAST_ATMOS_Amaj etheral.wav'] },
-    { title: 'and sick ass loops!!', files: ['TOAST_GUITAR_LOOPS_180BPM we love mutes.wav'] }
+    { title: 'kicks!', fx: 'crack', files: ['TOAST_KICKS _BLOCK.wav', 'TOAST_KICKS _PURRRRRING.wav'] },
+    { title: 'snares!!', fx: 'crack', files: ['TOAST_SNARES _glitchy.wav', 'TOAST_SNARES _SLIMEDOUT.wav'] },
+    { title: 'Percussion!!!', fx: 'echo', files: ["TOAST_TOMS_ who's tom.wav"] },
+    { title: 'even effects!', files: ['TOAST_FX_bass slide1.wav', 'TOAST_FX_scrape2.wav'] },
+    { title: 'and sick ass loops!!', fx: 'space', files: ['TOAST_ATMOS_Amaj etheral.wav', 'TOAST_GUITAR_LOOPS_180BPM we love mutes.wav'] }
   ];
   var LOGO = 'logo.png';
   /* ========================================================================================== */
@@ -205,20 +242,200 @@
     if (current && !audio.paused) raf = requestAnimationFrame(tick);
   }
   function play(r, at) {
+    if (at == null && r.fx !== 'space' && (current !== r || audio.ended || audio.paused)) at = 0;   // one-shots replay from the top
+    if (r.fx === 'crack') crackHit(r);
+    if (r.fx === 'echo') echo(r);
     if (current !== r) {
       if (current) { setIcon(current, false); var old = current; current = r; drawWave(old); }
       current = r;
       audio.src = r.url;
     }
     if (at != null) {
-      var seek = function () { audio.currentTime = at * audio.duration; };
+      var seek = function () { audio.currentTime = at * (audio.duration || 0); };
       if (audio.duration) seek(); else audio.addEventListener('loadedmetadata', seek, { once: true });
     }
     audio.play().catch(function () {});
   }
-  audio.addEventListener('play', function () { if (current) setIcon(current, true); cancelAnimationFrame(raf); tick(); });
-  audio.addEventListener('pause', function () { if (current) { setIcon(current, false); drawWave(current); } });
-  audio.addEventListener('ended', function () { if (current) { setIcon(current, false); audio.currentTime = 0; drawWave(current); } });
+  audio.addEventListener('play', function () { if (current) setIcon(current, true); cancelAnimationFrame(raf); tick(); spaceSet(!!current && current.fx === 'space'); });
+  audio.addEventListener('pause', function () { if (current) { setIcon(current, false); drawWave(current); } spaceSet(false); });
+  audio.addEventListener('ended', function () { if (current) { setIcon(current, false); audio.currentTime = 0; drawWave(current); } spaceSet(false); });
+
+
+  /* ================= the special effects ================= */
+  var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var root = document.documentElement;
+  function isLight() { return root.getAttribute('data-theme') === 'light' && !root.classList.contains('space-on'); }
+
+  /* ---- percussion: a faint echo ripples out of the box ---- */
+  function echo(r) {
+    if (reduce || !r.el.animate) return;
+    [0, 170, 340].forEach(function (d, i) {
+      var e = document.createElement('div');
+      e.className = 'echo';
+      r.el.appendChild(e);
+      var a = e.animate([
+        { transform: 'scale(1)', opacity: 0.32 - i * 0.07 },
+        { transform: 'scale(' + (1.06 + i * 0.03) + ',' + (1.5 + i * 0.25) + ')', opacity: 0 }
+      ], { duration: 900, delay: d, easing: 'cubic-bezier(0.2, 0.7, 0.3, 1)', fill: 'backwards' });
+      a.onfinish = function () { e.remove(); };
+    });
+  }
+
+  /* ---- loops: the background turns into space ---- */
+  var space = document.getElementById('space'), stars = document.getElementById('stars'), sctx = stars.getContext('2d');
+  var starList = [], spaceOn = false, spaceRaf = 0, spaceOff = 0, sLast = 0;
+  function spaceSet(on) {
+    if (on === spaceOn) return;
+    spaceOn = on;
+    space.classList.toggle('on', on);
+    root.classList.toggle('space-on', on);
+    if (on) { spaceOff = 0; if (!spaceRaf) { sizeStars(); spaceRaf = requestAnimationFrame(spaceLoop); } }
+    else spaceOff = performance.now() + 1300;
+  }
+  function sizeStars() {
+    var d = Math.min(2, window.devicePixelRatio || 1);
+    stars.width = Math.round(innerWidth * d); stars.height = Math.round(innerHeight * d);
+    sctx.setTransform(d, 0, 0, d, 0, 0);
+    if (!starList.length) for (var i = 0; i < 260; i++) starList.push({ x: Math.random(), y: Math.random(), z: 0.2 + Math.random() * 0.8, t: Math.random() * 6.28 });
+  }
+  function spaceLoop(now) {
+    var dt = Math.min(0.05, (now - sLast) / 1000 || 0.016); sLast = now;
+    var W = innerWidth, H = innerHeight;
+    sctx.clearRect(0, 0, W, H);
+    for (var i = 0; i < starList.length; i++) {
+      var st = starList[i];
+      if (!reduce) { st.x -= dt * 0.006 * st.z; st.t += dt * (1 + st.z * 2); }
+      if (st.x < 0) { st.x += 1; st.y = Math.random(); }
+      var a = 0.35 + 0.65 * st.z * (0.7 + 0.3 * Math.sin(st.t));
+      sctx.fillStyle = 'rgba(255,255,255,' + a.toFixed(2) + ')';
+      sctx.beginPath(); sctx.arc(st.x * W, st.y * H, 0.4 + st.z * 1.3, 0, 6.2832); sctx.fill();
+    }
+    if (spaceOn || now < spaceOff) spaceRaf = requestAnimationFrame(spaceLoop); else spaceRaf = 0;
+  }
+
+  /* ---- kicks + snares: the background cracks like a window ---- */
+  var glass = document.getElementById('glass'), g = glass.getContext('2d');
+  var cracks = [], shards = [], chain = 0, lastHit = 0, glassRaf = 0, gLast = 0, wrapEl = document.querySelector('.wrap');
+  var BREAK_AT = 10;
+  function sizeGlass() {
+    var d = Math.min(2, window.devicePixelRatio || 1);
+    glass.width = Math.round(innerWidth * d); glass.height = Math.round(innerHeight * d);
+    g.setTransform(d, 0, 0, d, 0, 0);
+  }
+  function makeCrack(x, y, R) {
+    var lines = [], rays = 7 + Math.floor(Math.random() * 5) + Math.floor(R / 90), rayPts = [];
+    for (var i = 0; i < rays; i++) {
+      var ang = (i / rays) * 6.2832 + (Math.random() - 0.5) * 0.5, len = R * (0.45 + Math.random() * 0.55);
+      var pts = [[x, y]], px = x, py = y, d = 0;
+      while (d < len) {
+        var step = 10 + Math.random() * 22;
+        ang += (Math.random() - 0.5) * 0.45;
+        px += Math.cos(ang) * step; py += Math.sin(ang) * step; d += step;
+        pts.push([px, py]);
+        if (Math.random() < 0.12 && d > 25) {
+          var ba = ang + (Math.random() < 0.5 ? 1 : -1) * (0.4 + Math.random() * 0.6), bx = px, by = py, b = [[px, py]];
+          for (var k = 0; k < 3; k++) { ba += (Math.random() - 0.5) * 0.4; bx += Math.cos(ba) * (8 + Math.random() * 12); by += Math.sin(ba) * (8 + Math.random() * 12); b.push([bx, by]); }
+          lines.push(b);
+        }
+      }
+      lines.push(pts); rayPts.push(pts);
+    }
+    [0.22, 0.45, 0.7].forEach(function (f) {
+      for (var i = 0; i < rayPts.length; i++) {
+        var a = rayPts[i], b = rayPts[(i + 1) % rayPts.length];
+        if (Math.random() < 0.35) continue;
+        var pa = a[Math.min(a.length - 1, Math.round(a.length * f))], pb = b[Math.min(b.length - 1, Math.round(b.length * f))];
+        var mx = (pa[0] + pb[0]) / 2 + (Math.random() - 0.5) * 10, my = (pa[1] + pb[1]) / 2 + (Math.random() - 0.5) * 10;
+        lines.push([pa, [mx, my], pb]);
+      }
+    });
+    return { x: x, y: y, lines: lines, R: R };
+  }
+  function shake(power) {
+    if (reduce || !wrapEl.animate) return;
+    var p = Math.min(9, 1.5 + power * 0.7), k = [];
+    for (var i = 0; i < 5; i++) k.push({ transform: 'translate(' + ((Math.random() - 0.5) * 2 * p).toFixed(1) + 'px,' + ((Math.random() - 0.5) * 2 * p).toFixed(1) + 'px)' });
+    k.push({ transform: 'none' });
+    wrapEl.animate(k, { duration: 160, easing: 'linear' });
+  }
+  function crackHit(r) {
+    var now = performance.now();
+    chain = (now - lastHit < 1000) ? chain + 1 : 1;               // hits less than a second apart build up
+    lastHit = now;
+    if (glass.width !== Math.round(innerWidth * Math.min(2, window.devicePixelRatio || 1))) sizeGlass();
+    if (chain >= BREAK_AT) { chain = 0; shatter(); return; }
+    var b = r.el.getBoundingClientRect(), W = innerWidth, H = innerHeight;
+    var x = chain === 1 ? b.left + Math.random() * b.width : Math.random() * W;
+    var y = chain === 1 ? b.top + b.height / 2 : Math.random() * H;
+    cracks.push(makeCrack(x, y, 70 + chain * 38 + Math.random() * 40));
+    if (cracks.length > 14) cracks.shift();
+    shake(chain);
+    if (!glassRaf) glassRaf = requestAnimationFrame(glassLoop);
+  }
+  function strokeLines(lines, alpha) {
+    var light = isLight();
+    g.strokeStyle = light ? 'rgba(20,20,26,' + (0.75 * alpha) + ')' : 'rgba(255,255,255,' + (0.8 * alpha) + ')';
+    g.lineWidth = 1.1;
+    g.lineJoin = 'round';
+    g.beginPath();
+    lines.forEach(function (l) { g.moveTo(l[0][0], l[0][1]); for (var i = 1; i < l.length; i++) g.lineTo(l[i][0], l[i][1]); });
+    g.stroke();
+    g.strokeStyle = light ? 'rgba(255,255,255,' + (0.5 * alpha) + ')' : 'rgba(170,200,255,' + (0.18 * alpha) + ')';
+    g.lineWidth = 3;
+    g.stroke();
+  }
+  function glassLoop(now) {
+    var dt = Math.min(0.05, (now - gLast) / 1000 || 0.016); gLast = now;
+    g.clearRect(0, 0, innerWidth, innerHeight);
+    var age = performance.now() - lastHit, alpha = age < 1000 ? 1 : Math.max(0, 1 - (age - 1000) / 500);
+    if (alpha <= 0) { cracks = []; }
+    else { var grow = Math.min(1, age / 90); cracks.forEach(function (c, i) { strokeLines(c.lines, alpha * (i === cracks.length - 1 ? grow : 1)); }); }
+    for (var i = shards.length - 1; i >= 0; i--) {
+      var s = shards[i];
+      if (s.wait > 0) { s.wait -= dt; }
+      else { s.vy += 2200 * dt; s.x += s.vx * dt; s.y += s.vy * dt; s.rot += s.vr * dt; }
+      if (s.y - 250 > innerHeight) { shards.splice(i, 1); continue; }
+      g.save();
+      g.translate(s.x, s.y); g.rotate(s.rot);
+      g.beginPath();
+      s.pts.forEach(function (p, k) { if (k) g.lineTo(p[0], p[1]); else g.moveTo(p[0], p[1]); });
+      g.closePath();
+      g.fillStyle = s.fill; g.fill();
+      g.strokeStyle = s.edge; g.lineWidth = 1.2; g.stroke();
+      g.restore();
+    }
+    if (cracks.length || shards.length) glassRaf = requestAnimationFrame(glassLoop);
+    else { glassRaf = 0; g.clearRect(0, 0, innerWidth, innerHeight); }
+  }
+  // ten hits in a row: the whole background falls apart and the other colour mode is behind it
+  function shatter() {
+    var W = innerWidth, H = innerHeight, cx = W * (0.3 + Math.random() * 0.4), cy = H * (0.3 + Math.random() * 0.4);
+    var wasLight = root.getAttribute('data-theme') === 'light';
+    var fill = getComputedStyle(document.body).backgroundColor, edge = wasLight ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.45)';
+    cracks = [];
+    shards = [];
+    var maxR = Math.hypot(Math.max(cx, W - cx), Math.max(cy, H - cy)) + 40;
+    var rings = [0, 50, 120, 220, 350, 520, 740, 1000, 1400, 1900, 2600].filter(function (v, i, a) { return v < maxR || (i && a[i - 1] < maxR); });
+    rings[rings.length - 1] = Math.max(rings[rings.length - 1], maxR * 1.15);
+    var SEG = 16, angs = [];
+    for (var a = 0; a < SEG; a++) angs.push(a / SEG * 6.2832 + (Math.random() - 0.5) * 0.25);
+    var P = rings.map(function (rr, ri) { return angs.map(function (an) { var j = ri ? rr * (1 + (Math.random() - 0.5) * 0.18) : 0; return [cx + Math.cos(an) * j, cy + Math.sin(an) * j]; }); });
+    for (var ri = 0; ri < rings.length - 1; ri++) for (var ai = 0; ai < SEG; ai++) {
+      var n = (ai + 1) % SEG, poly = ri === 0 ? [P[0][0], P[1][ai], P[1][n]] : [P[ri][ai], P[ri + 1][ai], P[ri + 1][n], P[ri][n]];
+      var mx = 0, my = 0; poly.forEach(function (p) { mx += p[0]; my += p[1]; }); mx /= poly.length; my /= poly.length;
+      var dist = Math.hypot(mx - cx, my - cy), dir = Math.atan2(my - cy, mx - cx);
+      shards.push({
+        x: mx, y: my, rot: 0, pts: poly.map(function (p) { return [p[0] - mx, p[1] - my]; }),
+        vx: Math.cos(dir) * (60 + Math.random() * 160), vy: Math.sin(dir) * (40 + Math.random() * 120) - 120,
+        vr: (Math.random() - 0.5) * 4, wait: 0.05 + dist / 2600 + Math.random() * 0.25, fill: fill, edge: edge
+      });
+    }
+    if (wasLight) root.removeAttribute('data-theme'); else root.setAttribute('data-theme', 'light');
+    shake(10);
+    if (!glassRaf) glassRaf = requestAnimationFrame(glassLoop);
+  }
+  window.addEventListener('resize', function () { sizeGlass(); if (spaceRaf) sizeStars(); });
+  sizeGlass();
 
   var box = document.getElementById('samples');
   SECTIONS.forEach(function (sec) {
@@ -227,9 +444,9 @@
     var list = document.createElement('div');
     list.className = 'sec-list';
     box.appendChild(h); box.appendChild(list);
-    sec.files.forEach(function (file) { addSample(list, file); });
+    sec.files.forEach(function (file) { addSample(list, file, sec.fx || ''); });
   });
-  function addSample(list, file) {
+  function addSample(list, file, fx) {
     var el = document.createElement('div');
     el.className = 'smp';
     var logo = document.createElement('img');
@@ -244,10 +461,18 @@
     len.className = 'len'; len.textContent = '0:00';
     el.appendChild(logo); el.appendChild(btn); el.appendChild(name); el.appendChild(canvas); el.appendChild(len);
     list.appendChild(el);
-    var r = { file: file, url: encodeURIComponent(file).replace(/'/g, '%27'), el: el, btn: btn, canvas: canvas, len: len, peaks: null };
+    var r = { fx: fx, file: file, url: encodeURIComponent(file).replace(/'/g, '%27'), el: el, btn: btn, canvas: canvas, len: len, peaks: null };
     setIcon(r, false);
-    el.addEventListener('click', function () {               // click anywhere on the box to play / pause
+    btn.addEventListener('click', function (e) {             // the button: plain play / pause
+      e.stopPropagation();
       if (current === r && !audio.paused) audio.pause(); else play(r);
+    });
+    el.addEventListener('click', function () {               // the box: click = play / pause, double click = from the start
+      if (current === r && !audio.paused && r.fx !== 'space') { play(r, 0); return; }   // short sounds: every click hits again
+      if (current === r && !audio.paused) {
+        if (r.pauseT) { clearTimeout(r.pauseT); r.pauseT = 0; play(r, 0); return; }
+        r.pauseT = setTimeout(function () { r.pauseT = 0; audio.pause(); }, 260);
+      } else play(r);
     });
     canvas.addEventListener('click', function (e) {          // click the waveform to jump there
       e.stopPropagation();
