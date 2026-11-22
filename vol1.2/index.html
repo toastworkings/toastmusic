@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>TOAST VOL.1.2</title>
-<link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Kanit:ital,wght@1,800&family=Poppins:wght@500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Geo&family=Kanit:ital,wght@1,800&family=Poppins:wght@500;600&display=swap" rel="stylesheet">
 <script>
   try { if (localStorage.getItem('toast_theme') === 'light') document.documentElement.setAttribute('data-theme', 'light'); } catch (e) {}
 </script>
@@ -39,7 +39,7 @@
   /* the title: a white outline with a little pixel shadow */
   h1 {
     margin: 0;
-    font: 400 clamp(38px, 8vw, 78px)/1 'Silkscreen', monospace;
+    font: 400 clamp(44px, 9vw, 92px)/1 'Geo', sans-serif;
     color: var(--bg);
     -webkit-text-stroke: 2px var(--fg);
     paint-order: stroke fill;
@@ -186,6 +186,11 @@
   #meter-l { left: 22px; }
   #meter-r { right: 22px; }
   @media (max-width: 700px) { .meter { width: 14px; } #meter-l { left: 6px; } #meter-r { right: 6px; } }
+  .buy { margin-top: 90px; padding-bottom: 30px; }
+  .buy h2 { margin: 0 0 26px; }
+  #buy-link { display: inline-block; border-radius: 16px; transition: transform 0.2s ease-out, box-shadow 0.2s ease-out; }
+  #buy-link:hover { transform: scale(1.08) rotate(-2deg); box-shadow: 0 0 0 2px #4da3ff, 0 0 26px rgba(77, 163, 255, 0.5); }
+  #buy-link img { display: block; width: 130px; height: 130px; border-radius: 16px; object-fit: cover; background: var(--btn); }
 </style>
 </head>
 <body>
@@ -205,6 +210,10 @@
   </div>
   <h2>Here are some of the samples:</h2>
   <div id="samples"></div>
+  <div class="buy">
+    <h2>Wanna get the Sample pack? Buy it now on ko-fi!</h2>
+    <a id="buy-link" href="#" aria-label="Buy TOAST VOL1.2 on Ko-fi"><img src="logo.png" alt="TOAST VOL1.2"></a>
+  </div>
 </div>
 
 <script>
@@ -217,6 +226,13 @@
     { title: 'and sick ass loops!!', fx: 'space', files: ['TOAST_ATMOS_Amaj etheral.wav', 'TOAST_GUITAR_LOOPS_180BPM we love mutes.wav'] }
   ];
   var LOGO = 'logo.png';
+  var KOFI_URL = '';            // put the Ko-fi link to the sample pack here once it's public
+  /* ========================================================================================== */
+  (function () {
+    var a = document.getElementById('buy-link');
+    if (KOFI_URL) { a.href = KOFI_URL; a.target = '_blank'; a.rel = 'noopener noreferrer'; }
+    else a.addEventListener('click', function (e) { e.preventDefault(); });   // not public yet
+  })();
   /* ========================================================================================== */
 
   var PLAY = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
