@@ -4,18 +4,263 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>TOAST VOL.1.2</title>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Kanit:ital,wght@1,800&family=Poppins:wght@500;600&display=swap" rel="stylesheet">
 <script>
   try { if (localStorage.getItem('toast_theme') === 'light') document.documentElement.setAttribute('data-theme', 'light'); } catch (e) {}
 </script>
 <style>
-  :root { --bg: #000; --fg: #fff; }
-  :root[data-theme="light"] { --bg: #fff; --fg: #141416; }
-  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); }
-  body { display: flex; align-items: center; justify-content: center; font: 700 42px 'Poppins', sans-serif; }
+  :root {
+    --bg: #000000;
+    --fg: #ffffff;
+    --fg2: #9a9a9a;
+    --row: #0c0c0c;
+    --row-hover: #161616;
+    --border: #222222;
+    --btn: #2a2a2a;
+    --wave: #4a4a4a;
+    --wave-on: #ffffff;
+  }
+  :root[data-theme="light"] {
+    --bg: #ffffff;
+    --fg: #141416;
+    --fg2: #66666e;
+    --row: #f4f4f6;
+    --row-hover: #eaeaee;
+    --border: #dcdce1;
+    --btn: #dcdce1;
+    --wave: #c4c4cb;
+    --wave-on: #141416;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--fg); }
+  body { font-family: 'Poppins', sans-serif; min-height: 100vh; }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 34px 20px 50px; text-align: center; }
+
+  /* the title: a white outline with a little pixel shadow */
+  h1 {
+    margin: 0;
+    font: 400 clamp(38px, 8vw, 78px)/1 'Silkscreen', monospace;
+    color: var(--bg);
+    -webkit-text-stroke: 2px var(--fg);
+    paint-order: stroke fill;
+    text-shadow: 4px 4px 0 var(--fg2);
+    letter-spacing: 2px;
+  }
+  .desc {
+    margin: 26px auto 0;
+    max-width: 720px;
+    font: 400 clamp(12px, 1.6vw, 15px)/1.55 'Silkscreen', monospace;
+    color: var(--fg2);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  .desc p { margin: 0; }
+  h2 {
+    margin: 46px 0 26px;
+    font: italic 800 clamp(22px, 3.6vw, 32px)/1.1 'Kanit', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* the samples */
+  #samples {
+    max-height: 62vh;
+    overflow-y: auto;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 4px 6px 4px 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--btn) transparent;
+  }
+  .smp {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 16px;
+    background: var(--row);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    transition: background 0.15s ease-out;
+  }
+  .smp:hover, .smp.playing { background: var(--row-hover); }
+  .logo { flex: none; width: 44px; height: 44px; border-radius: 6px; object-fit: cover; background: var(--btn); }
+  .play {
+    flex: none;
+    width: 34px;
+    height: 34px;
+    border: 0;
+    border-radius: 8px;
+    background: var(--btn);
+    color: var(--fg);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.15s ease-out;
+  }
+  .play:hover { transform: scale(1.08); }
+  .play svg { width: 16px; height: 16px; fill: currentColor; }
+  .name {
+    flex: 1;
+    min-width: 0;
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .wave { flex: none; width: 200px; height: 34px; cursor: pointer; }
+  .len { flex: none; width: 42px; text-align: right; font-size: 13px; color: var(--fg2); font-variant-numeric: tabular-nums; }
+  @media (max-width: 640px) {
+    .smp { flex-wrap: wrap; gap: 10px; }
+    .name { flex-basis: calc(100% - 110px); }
+    .wave { flex: 1; width: auto; }
+  }
 </style>
 </head>
 <body>
-  <h1 style="font: inherit; margin: 0;">Hello World</h1>
+<div class="wrap">
+  <h1>TOAST VOL1.2</h1>
+  <div class="desc">
+    <p>Toast 1.2 is a brand new sample pack made by me to deliver useful sounds that I myself would use in music production!!!</p>
+    <p>The sample pack contains over 100MB of hand made samples</p>
+    <p>- X drums</p>
+    <p>- X FX</p>
+    <p>- X loops</p>
+    <p>- X presets</p>
+  </div>
+  <h2>Here are some of the samples:</h2>
+  <div id="samples"></div>
+</div>
+
+<script>
+  /* ====== the samples shown on the page: file names exactly as they are in this folder ====== */
+  var SAMPLES = [
+    'TOAST_KICKS _BLOCK.wav',
+    'TOAST_KICKS _PURRRRRING.wav',
+    'TOAST_SNARES _glitchy.wav',
+    'TOAST_SNARES _SLIMEDOUT.wav',
+    "TOAST_TOMS_ who's tom.wav",
+    'TOAST_FX_bass slide1.wav',
+    'TOAST_FX_scrape2.wav',
+    'TOAST_ATMOS_Amaj etheral.wav',
+    'TOAST_GUITAR_LOOPS_180BPM we love mutes.wav'
+  ];
+  var LOGO = 'logo.png';
+  /* ========================================================================================== */
+
+  var PLAY = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+  var PAUSE = '<svg viewBox="0 0 24 24"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>';
+  var BARS = 56;
+  var audio = new Audio();
+  var current = null, actx = null, raf = 0;
+  var rows = [];
+
+  function fmt(t) { t = Math.max(0, Math.round(t || 0)); return Math.floor(t / 60) + ':' + ('0' + (t % 60)).slice(-2); }
+  function cssVar(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+
+  function drawWave(r) {
+    var c = r.canvas, dpr = window.devicePixelRatio || 1;
+    var w = c.clientWidth, h = c.clientHeight;
+    if (!w || !h) return;
+    if (c.width !== Math.round(w * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+    var g = c.getContext('2d');
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, w, h);
+    var peaks = r.peaks || null, n = BARS, step = w / n, bw = Math.max(1.5, step * 0.55);
+    var prog = (current === r && audio.duration) ? audio.currentTime / audio.duration : 0;
+    var off = cssVar('--wave'), on = cssVar('--wave-on');
+    for (var i = 0; i < n; i++) {
+      var v = peaks ? peaks[i] : 0.12;
+      var bh = Math.max(2, v * (h - 2));
+      g.fillStyle = (i + 0.5) / n <= prog ? on : off;
+      g.fillRect(i * step + (step - bw) / 2, (h - bh) / 2, bw, bh);
+    }
+  }
+
+  // read the file once to get its real waveform and length
+  function analyse(r) {
+    try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
+    fetch(r.url).then(function (res) { if (!res.ok) throw new Error(); return res.arrayBuffer(); })
+      .then(function (buf) { return new Promise(function (ok, bad) { actx.decodeAudioData(buf, ok, bad); }); })
+      .then(function (ab) {
+        var d = ab.getChannelData(0), per = Math.floor(d.length / BARS) || 1, peaks = [], max = 0;
+        for (var i = 0; i < BARS; i++) {
+          var m = 0;
+          for (var j = i * per, e = Math.min(d.length, j + per); j < e; j += 4) { var a = Math.abs(d[j]); if (a > m) m = a; }
+          peaks.push(m); if (m > max) max = m;
+        }
+        r.peaks = peaks.map(function (p) { return max ? Math.pow(p / max, 0.8) : 0; });
+        r.len.textContent = fmt(ab.duration);
+        drawWave(r);
+      }).catch(function () { r.len.textContent = '--:--'; });
+  }
+
+  function setIcon(r, playing) {
+    r.btn.innerHTML = playing ? PAUSE : PLAY;
+    r.btn.setAttribute('aria-label', (playing ? 'Pause ' : 'Play ') + r.file);
+    r.el.classList.toggle('playing', playing);
+  }
+  function tick() {
+    if (current) drawWave(current);
+    if (current && !audio.paused) raf = requestAnimationFrame(tick);
+  }
+  function play(r, at) {
+    if (current !== r) {
+      if (current) { setIcon(current, false); var old = current; current = r; drawWave(old); }
+      current = r;
+      audio.src = r.url;
+    }
+    if (at != null) {
+      var seek = function () { audio.currentTime = at * audio.duration; };
+      if (audio.duration) seek(); else audio.addEventListener('loadedmetadata', seek, { once: true });
+    }
+    audio.play().catch(function () {});
+  }
+  audio.addEventListener('play', function () { if (current) setIcon(current, true); cancelAnimationFrame(raf); tick(); });
+  audio.addEventListener('pause', function () { if (current) { setIcon(current, false); drawWave(current); } });
+  audio.addEventListener('ended', function () { if (current) { setIcon(current, false); audio.currentTime = 0; drawWave(current); } });
+
+  var list = document.getElementById('samples');
+  SAMPLES.forEach(function (file) {
+    var el = document.createElement('div');
+    el.className = 'smp';
+    var logo = document.createElement('img');
+    logo.className = 'logo'; logo.alt = ''; logo.onerror = function () { logo.style.visibility = 'hidden'; }; logo.src = LOGO;
+    var btn = document.createElement('button');
+    btn.className = 'play'; btn.type = 'button';
+    var name = document.createElement('div');
+    name.className = 'name'; name.textContent = file; name.title = file;
+    var canvas = document.createElement('canvas');
+    canvas.className = 'wave';
+    var len = document.createElement('div');
+    len.className = 'len'; len.textContent = '0:00';
+    el.appendChild(logo); el.appendChild(btn); el.appendChild(name); el.appendChild(canvas); el.appendChild(len);
+    list.appendChild(el);
+    var r = { file: file, url: encodeURIComponent(file).replace(/'/g, '%27'), el: el, btn: btn, canvas: canvas, len: len, peaks: null };
+    setIcon(r, false);
+    btn.addEventListener('click', function () {
+      if (current === r && !audio.paused) audio.pause(); else play(r);
+    });
+    canvas.addEventListener('click', function (e) {          // click the waveform to jump there
+      var b = canvas.getBoundingClientRect();
+      play(r, Math.max(0, Math.min(1, (e.clientX - b.left) / b.width)));
+    });
+    rows.push(r);
+    drawWave(r);
+    analyse(r);
+  });
+  // space = play / pause the current sample
+  document.addEventListener('keydown', function (e) {
+    if ((e.key !== ' ' && e.code !== 'Space') || e.repeat) return;
+    if (e.target.closest && e.target.closest('button, input, textarea, a')) return;
+    e.preventDefault();
+    if (!current) { if (rows[0]) play(rows[0]); return; }
+    if (audio.paused) audio.play().catch(function () {}); else audio.pause();
+  });
+  window.addEventListener('resize', function () { rows.forEach(drawWave); });
+</script>
 </body>
 </html>
