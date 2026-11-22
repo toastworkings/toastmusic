@@ -63,17 +63,22 @@
   }
 
   /* the samples */
-  #samples {
-    text-align: left;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+  #samples { max-width: 860px; margin: 0 auto; text-align: left; }
+  .sec-title {
+    margin: 54px 0 22px;
+    text-align: center;
+    font: italic 800 clamp(20px, 2.8vw, 26px)/1.1 'Kanit', sans-serif;
+    color: var(--fg2);
+    text-transform: none;
   }
+  .sec-title:first-child { margin-top: 8px; }
+  .sec-list { display: flex; flex-direction: column; gap: 20px; }
   .smp {
     display: flex;
     align-items: center;
     gap: 14px;
-    padding: 12px 16px;
+    padding: 16px 22px;
+    cursor: pointer;
     background: var(--row);
     border: 1px solid var(--border);
     border-radius: 12px;
@@ -93,9 +98,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform 0.15s ease-out;
+    transition: transform 0.15s ease-out, box-shadow 0.2s ease-out;
   }
   .play:hover { transform: scale(1.08); }
+  .smp.playing .play { box-shadow: 0 0 0 2px #4da3ff, 0 0 12px rgba(77, 163, 255, 0.55); }
   .play svg { width: 16px; height: 16px; fill: currentColor; }
   .name {
     flex: 1;
@@ -106,7 +112,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  .wave { flex: none; width: 200px; height: 34px; cursor: pointer; }
+  .wave { flex: none; width: 280px; height: 46px; cursor: pointer; }
   .len { flex: none; width: 42px; text-align: right; font-size: 13px; color: var(--fg2); font-variant-numeric: tabular-nums; }
   @media (max-width: 640px) {
     .smp { flex-wrap: wrap; gap: 10px; }
@@ -132,16 +138,12 @@
 
 <script>
   /* ====== the samples shown on the page: file names exactly as they are in this folder ====== */
-  var SAMPLES = [
-    'TOAST_KICKS _BLOCK.wav',
-    'TOAST_KICKS _PURRRRRING.wav',
-    'TOAST_SNARES _glitchy.wav',
-    'TOAST_SNARES _SLIMEDOUT.wav',
-    "TOAST_TOMS_ who's tom.wav",
-    'TOAST_FX_bass slide1.wav',
-    'TOAST_FX_scrape2.wav',
-    'TOAST_ATMOS_Amaj etheral.wav',
-    'TOAST_GUITAR_LOOPS_180BPM we love mutes.wav'
+  var SECTIONS = [
+    { title: 'kicks!', files: ['TOAST_KICKS _BLOCK.wav', 'TOAST_KICKS _PURRRRRING.wav'] },
+    { title: 'snares!!', files: ['TOAST_SNARES _glitchy.wav', 'TOAST_SNARES _SLIMEDOUT.wav'] },
+    { title: 'Percussion!!!', files: ["TOAST_TOMS_ who's tom.wav"] },
+    { title: 'even effects!', files: ['TOAST_FX_bass slide1.wav', 'TOAST_FX_scrape2.wav', 'TOAST_ATMOS_Amaj etheral.wav'] },
+    { title: 'and sick ass loops!!', files: ['TOAST_GUITAR_LOOPS_180BPM we love mutes.wav'] }
   ];
   var LOGO = 'logo.png';
   /* ========================================================================================== */
@@ -218,8 +220,16 @@
   audio.addEventListener('pause', function () { if (current) { setIcon(current, false); drawWave(current); } });
   audio.addEventListener('ended', function () { if (current) { setIcon(current, false); audio.currentTime = 0; drawWave(current); } });
 
-  var list = document.getElementById('samples');
-  SAMPLES.forEach(function (file) {
+  var box = document.getElementById('samples');
+  SECTIONS.forEach(function (sec) {
+    var h = document.createElement('h3');
+    h.className = 'sec-title'; h.textContent = sec.title;
+    var list = document.createElement('div');
+    list.className = 'sec-list';
+    box.appendChild(h); box.appendChild(list);
+    sec.files.forEach(function (file) { addSample(list, file); });
+  });
+  function addSample(list, file) {
     var el = document.createElement('div');
     el.className = 'smp';
     var logo = document.createElement('img');
@@ -236,17 +246,18 @@
     list.appendChild(el);
     var r = { file: file, url: encodeURIComponent(file).replace(/'/g, '%27'), el: el, btn: btn, canvas: canvas, len: len, peaks: null };
     setIcon(r, false);
-    btn.addEventListener('click', function () {
+    el.addEventListener('click', function () {               // click anywhere on the box to play / pause
       if (current === r && !audio.paused) audio.pause(); else play(r);
     });
     canvas.addEventListener('click', function (e) {          // click the waveform to jump there
+      e.stopPropagation();
       var b = canvas.getBoundingClientRect();
       play(r, Math.max(0, Math.min(1, (e.clientX - b.left) / b.width)));
     });
     rows.push(r);
     drawWave(r);
     analyse(r);
-  });
+  }
   // space = play / pause the current sample
   document.addEventListener('keydown', function (e) {
     if ((e.key !== ' ' && e.code !== 'Space') || e.repeat) return;
